@@ -1,0 +1,15 @@
+[package]
+name = "clownfish-mac"
+version = "0.1.0"
+edition = "2021"
+description = "Clownfish macOS shell: spawns the Node server and hosts it in a native WKWebView window"
+
+[dependencies]
+tao = "0.37"
+wry = "0.56"
+muda = "0.19"
+libc = "0.2"
+
+# One binary, no Tauri IPC/asset machinery — the app is a window around an
+# HTTP server that already exists. See app/README.md for the pitfalls this
+# build answers (traffic lights, drag region, Edit menu, child reaping).

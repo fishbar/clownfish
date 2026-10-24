@@ -1,0 +1,4728 @@
+:root {
+	--bg: #0e1116;
+	--panel: #161b22;
+	--panel-2: #1c232c;
+	--border: #2a323d;
+	--text: #e6edf3;
+	--muted: #8b949e;
+	--accent: #4aa8df;
+	/* Filled-button ground. Was #2f81f7, on which white text measures 3.75:1 —
+	   under the 4.5:1 floor for body-size text. #1f6fe0 reaches 5.2:1 and is the
+	   same hue one step deeper, so nothing else has to change. */
+	--accent-2: #1f6fe0;
+	--danger: #f85149;
+	--ok: #3fb950;
+	--radius: 10px;
+	--topbar-h: 48px;
+	--mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+* {
+	box-sizing: border-box;
+}
+html,
+body,
+#app {
+	height: 100%;
+	margin: 0;
+}
+body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+	background: var(--bg);
+	color: var(--text);
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+/* macOS-style overlay-thin scrollbars, app-wide: a 3px thumb (5px on hover,
+   8px while dragging) inside a transparent track — takes no layout space and
+   stays unobtrusive on every scroller (messages, code blocks, dock, tree). */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: color-mix(in srgb, var(--muted) 45%, transparent) transparent;
+}
+::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+::-webkit-scrollbar-thumb {
+	background: color-mix(in srgb, var(--muted) 40%, transparent);
+	border-radius: 4px;
+	/* The 8px-wide element stays transparent at rest; the VISIBLE thumb is the
+	   3px border, so the hit area is generous while the look is a thin bar. */
+	border-left: 5px solid transparent;
+	background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active {
+	border-left-width: 3px;
+	background-clip: border-box;
+}
+::-webkit-scrollbar-corner {
+	background: transparent;
+}
+
+.app {
+	display: flex;
+	flex-direction: column;
+	height: 100vh;
+	/* mobile: shrink with the dynamic viewport (address bar + on-screen keyboard)
+	   so the composer stays inside the visible area instead of being pushed off-screen. */
+	height: 100dvh;
+}
+.topbar {
+	position: relative; /* anchors the absolutely-positioned tab strip */
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: var(--topbar-h);
+	padding: 0 18px;
+	border-bottom: 1px solid var(--border);
+	background: var(--panel);
+}
+.brand {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 16px;
+	font-weight: 600;
+	color: var(--text);
+	text-decoration: none;
+}
+/* The master carries its own alpha, so the logo ships as the artwork alone —
+   no plate, no rounding (see scripts/logo-assets.mjs, which picks the mask from
+   the master rather than guessing at it). */
+.logo {
+	width: 22px;
+	height: 22px;
+	flex: none;
+}
+/* Mobile-only: a ☰ toggle that slides the session tree out as a right-side
+   drawer. Hidden on desktop, where the tree is a persistent sidebar. */
+.menu-toggle {
+	display: none;
+	min-width: 36px;
+	min-height: 36px;
+}
+/* Signed-in user chip (avatar + email + sign out). margin-left:auto pins it to
+   the right edge next to the ☰ on mobile. Hidden until /auth/me resolves. */
+.topbar-user {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-left: auto;
+	padding-right: 12px;
+	font-size: 13px;
+}
+.avatar {
+	width: 22px;
+	height: 22px;
+	border-radius: 50%;
+}
+.user-email {
+	color: var(--muted);
+	white-space: nowrap;
+	max-width: 180px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.logout-btn {
+	font: inherit;
+	font-size: 12px;
+	color: var(--muted);
+	background: transparent;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 3px 8px;
+	cursor: pointer;
+}
+.logout-btn:hover {
+	color: var(--text);
+	border-color: var(--accent);
+}
+.drawer-backdrop {
+	display: none;
+}
+.main {
+	flex: 1;
+	overflow: hidden;
+}
+
+a {
+	color: var(--accent);
+}
+.muted {
+	color: var(--muted);
+}
+.small {
+	font-size: 12px;
+}
+.error {
+	background: rgba(248, 81, 73, 0.12);
+	border: 1px solid var(--danger);
+	color: #ffd7d4;
+	padding: 8px 12px;
+	border-radius: var(--radius);
+	margin: 10px 0;
+}
+.row {
+	display: flex;
+}
+.row.between {
+	justify-content: space-between;
+	align-items: center;
+}
+
+button {
+	background: var(--accent-2);
+	color: #fff;
+	border: 0;
+	border-radius: 8px;
+	padding: 7px 14px;
+	font-size: 13px;
+	cursor: pointer;
+}
+button:hover:not(:disabled) {
+	filter: brightness(1.1);
+}
+button:disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+button.danger {
+	background: var(--danger);
+}
+button.small {
+	padding: 5px 10px;
+	min-height: 28px;
+	font-size: 12px;
+}
+input,
+textarea {
+	background: var(--panel-2);
+	color: var(--text);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	padding: 8px 10px;
+	font: inherit;
+	outline: none;
+}
+input:focus,
+textarea:focus {
+	border-color: var(--accent);
+}
+/* The composer textarea has no border — signal focus via the box instead
+   (.composer-box.focused, set from JS). */
+.composer textarea:focus {
+	border-color: transparent;
+}
+
+.card {
+	background: var(--panel);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	padding: 14px;
+}
+
+/* chat */
+.chat {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	width: 100%;
+	min-width: 0;
+	min-height: 0;
+}
+.messages {
+	flex: 1;
+	min-height: 0; /* scroll within bounds instead of growing to content and pushing the composer off-screen */
+	min-width: 0;
+	overflow-y: auto;
+	overflow-x: hidden; /* NO horizontal scrollbar on the list: content wraps/clamps itself */
+	scrollbar-gutter: stable; /* reserve the gutter so content width doesn't jump when a scrollbar appears */
+	/* Side gutters: 20px each. The LEFT one hosts the floating minimap rail
+	   exactly (left 2px + 17.6px peak-magnified dash = 19.6px ≤ 20) — message
+	   bodies start clear of it, the rail never covers text. */
+	padding: 6px 20px 14px 20px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+.empty {
+	text-align: center;
+	margin-top: 40px;
+}
+.load-more {
+	text-align: center;
+	padding: 2px 0;
+}
+.msg {
+	display: flex;
+}
+.msg.user {
+	justify-content: flex-end;
+}
+.bubble {
+	padding: 10px 14px;
+	border-radius: 14px;
+	white-space: pre-wrap;
+	word-wrap: break-word;
+	overflow-wrap: anywhere; /* long URLs/hashes wrap, never push the list wide */
+	min-width: 0;
+}
+.msg.user .bubble {
+	/* Only the USER bubble is width-capped (chat-style short prompts);
+	   assistant bubbles span the column so code blocks/tables get room. */
+	max-width: 78%;
+	background: #1f3352;
+	color: #fff;
+	border-bottom-right-radius: 4px;
+}
+.msg.assistant .bubble {
+	/* Border-free AND background-free — only the USER bubble is a filled
+	   chat bubble; agent replies sit directly on the page bg. */
+	background: none;
+	border: none;
+	border-radius: 0;
+	padding: 2px 0;
+}
+
+/* Rendered markdown (assistant bubbles). The plain-text pre-wrap above is
+   overridden: block elements manage their own spacing and wrapping. */
+/* Images auto-fit: never wider than the column, tall shots scale down. */
+.bubble.md img {
+	max-width: 100%;
+	max-height: 480px;
+	height: auto;
+	border-radius: 4px;
+	display: block;
+}
+.bubble.md {
+	white-space: normal;
+	font-size: 13px;
+	line-height: 1.65;
+	/* One step dimmer than --text — long agent replies read less glaring
+	   on the near-black bg without losing contrast for emphasis spans. */
+	color: #c9d1d9;
+}
+.bubble.md > :first-child {
+	margin-top: 0;
+}
+.bubble.md > :last-child {
+	margin-bottom: 0;
+}
+.bubble.md p {
+	margin: 0 0 8px;
+	white-space: pre-wrap;
+}
+.bubble.md h2,
+.bubble.md h3,
+.bubble.md h4,
+.bubble.md h5,
+.bubble.md h6 {
+	margin: 14px 0 6px;
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.4;
+}
+.bubble.md h2 {
+	font-size: 15px;
+}
+.bubble.md ul,
+.bubble.md ol {
+	margin: 0 0 8px;
+	padding-left: 20px;
+}
+.bubble.md li {
+	margin: 2px 0;
+}
+.bubble.md blockquote {
+	margin: 0 0 8px;
+	padding: 2px 10px;
+	border-left: 3px solid var(--border);
+	color: var(--muted);
+}
+.bubble.md hr {
+	border: none;
+	border-top: 1px solid var(--border);
+	margin: 12px 0;
+}
+.bubble.md code.md-code,
+.bubble.md a {
+	font-family: var(--mono);
+	font-size: 12px;
+}
+.bubble.md code.md-code {
+	background: color-mix(in srgb, var(--muted) 14%, transparent);
+	border: none;
+	border-radius: 4px;
+	padding: 1px 4px;
+}
+.bubble.md a {
+	color: var(--accent);
+	text-decoration: none;
+}
+.bubble.md a:hover {
+	text-decoration: underline;
+}
+.md-scope pre.md-pre {
+	background: var(--panel-2);
+	border: none;
+	border-radius: 4px;
+	padding: 4px 0;
+	margin: 0;
+	overflow-x: auto; /* unbreakable runs scroll INSIDE the block (wrap is the default, via .hl-line) */
+	max-width: 100%;
+}
+.md-scope pre.md-pre code {
+	font-family: var(--mono);
+	font-size: 12px;
+	line-height: 1.5;
+	/* Line numbers: a CSS counter hangs a muted number off every .hl-line
+	   (markdown.ts wraps each line); zero extra markup to copy, numbers
+	   stay put when the block scrolls horizontally. */
+	counter-reset: ln;
+	display: block;
+	max-width: 100%;
+	padding-right: 10px;
+}
+/* Long lines wrap at the column edge (code stays fully readable in the chat
+   column). `anywhere` (not `all`) keeps punctuation breathing room; a truly
+   unbreakable run (data URI, hash) would still overflow — the pre's
+   overflow-x takes it, scrolling INSIDE the block, never widening the list. */
+.md-scope .hl-line {
+	counter-increment: ln;
+	display: block;
+	width: 100%;
+	padding-left: 40px;
+	position: relative;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+.md-scope .hl-line::before {
+	content: counter(ln);
+	position: absolute;
+	left: 0;
+	width: 28px;
+	text-align: right;
+	color: color-mix(in srgb, var(--muted) 55%, transparent);
+	user-select: none;
+}
+/* Code fence wrapper (markdown.ts): badge + copy float at the top-right
+   INSIDE the wrapper, OVERLAID on the code's first line — they take zero
+   block height. The first line indents under them only when needed. */
+.md-scope .md-code-block {
+	position: relative;
+	margin: 0 0 10px;
+}
+.md-scope .md-code-block pre.md-pre {
+	margin: 0;
+}
+/* Tools cluster: copy button hugging the language chip, both pinned to the
+   block's top-right corner (flush — no gap). The chip carries the corner
+   radius; the copy button stays a small square beside it. */
+.md-scope .md-tools {
+	position: absolute;
+	top: 0;
+	right: 0;
+	display: flex;
+	align-items: stretch;
+	gap: 4px; /* breathing room between the copy button and the language chip */
+	z-index: 2;
+}
+.md-scope .md-lang {
+	font-family: var(--mono);
+	font-size: 10px;
+	line-height: 1;
+	padding: 5px 8px 4px;
+	color: var(--text);
+	user-select: none;
+	pointer-events: none;
+	background: color-mix(in srgb, var(--muted) 22%, var(--panel-2));
+	border-radius: 0 4px 0 6px;
+}
+/* Copy button — hidden until the block is hovered; ✓ feedback for ~1.2s. */
+.md-scope .md-copy {
+	position: relative; /* anchors the success-burst overlay */
+	overflow: visible; /* let the burst scale past the button's box */
+	width: 22px;
+	height: 20px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: color-mix(in srgb, var(--muted) 22%, var(--panel-2));
+	border: none;
+	border-radius: 4px 0 0 0;
+	color: var(--muted);
+	font-size: 11px;
+	line-height: 1;
+	padding: 0;
+	cursor: pointer;
+	opacity: 0;
+	transition: opacity 120ms ease;
+}
+.md-scope .md-code-block:hover .md-copy {
+	opacity: 1;
+}
+.md-scope .md-copy:hover {
+	color: var(--text);
+	border-color: var(--accent);
+}
+/* Copy success "啪": the button SNAPS (instant contract → springy release,
+   overshot ease) while a bright green ring bursts outward and fades. Both
+   ~300ms; you cannot miss it. */
+.md-scope .md-copy.copied {
+	color: var(--ok);
+	opacity: 1;
+	animation: md-copy-pop 300ms cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+@keyframes md-copy-pop {
+	0% {
+		transform: scale(1);
+	}
+	35% {
+		transform: scale(0.72); /* the snap: instant contract… */
+	}
+	100% {
+		transform: scale(1); /* …then a springy release back */
+	}
+}
+.md-copy-burst {
+	position: absolute;
+	inset: -2px;
+	border-radius: 6px;
+	border: 2px solid var(--ok);
+	box-shadow: 0 0 12px 3px color-mix(in srgb, var(--ok) 70%, transparent);
+	pointer-events: none;
+	animation: md-copy-burst 320ms cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+@keyframes md-copy-burst {
+	0% {
+		transform: scale(0.8);
+		opacity: 1;
+	}
+	100% {
+		transform: scale(2.6);
+		opacity: 0;
+	}
+}
+/* Syntax palette (GitHub-dark-ish, tuned for --panel-2 code bg). */
+.md-scope .hl-keyword {
+	color: #ff7b72;
+}
+.md-scope .hl-string {
+	color: #a5d6ff;
+}
+.md-scope .hl-comment {
+	color: #6e7681;
+	font-style: italic;
+}
+.md-scope .hl-number {
+	color: #d2a8ff;
+}
+.md-scope .hl-type {
+	color: #ffa657;
+}
+.md-scope .hl-attr {
+	color: #7ee787;
+}
+/* ```diff fences: whole-line red/green like GitHub. The lines carry .hl-line
+   too (numbers + width come from that rule); the tint runs edge to edge by
+   stretching the background past the number gutter. */
+.md-scope .diff-add {
+	color: #aff5b4;
+	box-shadow: 0 0 0 100vmax rgba(46, 160, 67, 0.13);
+	clip-path: inset(0 -100vmax 0 0);
+}
+.md-scope .diff-ctx {
+	color: var(--muted);
+}
+.md-scope .diff-del {
+	color: #ffdcd7;
+	box-shadow: 0 0 0 100vmax rgba(248, 81, 73, 0.13);
+	clip-path: inset(0 -100vmax 0 0);
+}
+.md-scope .diff-meta {
+	color: var(--muted);
+	user-select: none;
+}
+/* GFM tables (agent comparisons / matrices render wide — scroll, don't wrap). */
+.bubble.md table.md-table {
+	border-collapse: collapse;
+	margin: 0 0 10px;
+	font-size: 13px;
+	display: block;
+	max-width: 100%;
+	overflow-x: auto;
+	white-space: nowrap;
+}
+.bubble.md table.md-table th,
+.bubble.md table.md-table td {
+	border: 1px solid var(--border);
+	padding: 5px 10px;
+	text-align: left;
+}
+.bubble.md table.md-table th {
+	background: var(--panel-2);
+	font-weight: 600;
+}
+.tool-card {
+	width: 100%;
+	background: var(--panel-2);
+	border: 1px solid var(--border);
+	border-left: 3px solid var(--muted);
+	border-radius: 8px;
+	padding: 8px 10px;
+	font-size: 12px;
+}
+.tool-card.ok {
+	border-left-color: var(--ok);
+}
+.tool-card.error {
+	border-left-color: var(--danger);
+}
+.tool-head {
+	display: flex;
+	justify-content: space-between;
+}
+.tool-name {
+	font-family: var(--mono);
+	font-weight: 600;
+	color: var(--accent);
+}
+.tool-args {
+	display: block;
+	margin: 4px 0;
+	color: var(--muted);
+	font-family: var(--mono);
+	white-space: pre-wrap;
+	word-wrap: break-word;
+}
+.tool-out {
+	margin: 6px 0 0;
+	padding: 8px;
+	background: var(--bg);
+	border-radius: 6px;
+	font-family: var(--mono);
+	white-space: pre-wrap;
+	word-wrap: break-word;
+	overflow-x: auto;
+}
+
+.composer-wrap {
+	position: relative;
+	/* No padding: the composer band runs EDGE TO EDGE across chat-main — with
+	   its top hairline it reads as the split between the upper (messages) and
+	   lower (input) halves of the column. */
+	/* No overflow here: the cmd-menu (absolute, bottom:100%) must escape clipping.
+	   The .composer inside keeps its own overflow for scrollbar-gutter alignment. */
+}
+.composer {
+	border-top: 1px solid var(--border);
+	padding: 0 4px; /* no vertical padding — the toolbar/border provide separation */
+	display: flex;
+	gap: 8px;
+	align-items: flex-end;
+	position: relative;
+	min-width: 0;
+	/* Match the messages area's scrollbar gutter so the input stays the same width
+	   as the chat content and doesn't shift when messages appear/disappear. */
+	overflow-y: auto;
+	scrollbar-gutter: stable;
+}
+.composer textarea {
+	flex: 1;
+	resize: none;
+	height: 44px; /* one line, unfocused */
+	min-height: 44px;
+	transition: height 0.2s ease;
+	/* Borderless inside .composer-box — the box draws the frame, the textarea is
+	   just the writing surface (fewer nested boxes = visually quieter). */
+	background: transparent;
+	border: none;
+	border-radius: 0;
+	padding: 10px 12px;
+}
+/* On focus the input animates up to HALF OF CHAT-MAIN for comfortable
+   editing. The target height is measured by JS at focus time (--focus-h on
+   the textarea — a % height can't resolve through the auto-height chain
+   wrap→box→composer); 50dvh is only a pre-measure fallback. Enter sends —
+   the mobile keyboard shows a Send key via enterKeyHint="send". */
+.composer textarea.focused {
+	height: var(--focus-h, 50dvh);
+}
+.composer-actions {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+/* Slash-command autocomplete popover (above the composer). */
+.cmd-menu {
+	position: absolute;
+	bottom: 100%;
+	left: 0;
+	right: 0;
+	background: var(--panel-2);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	margin-bottom: 6px;
+	overflow: hidden;
+	box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.35);
+	z-index: 5;
+}
+.cmd-item {
+	display: flex;
+	gap: 10px;
+	align-items: baseline;
+	padding: 8px 12px;
+	cursor: pointer;
+	font-size: 13px;
+}
+.cmd-item.active {
+	background: color-mix(in srgb, var(--accent-2) 18%, transparent);
+}
+.cmd-name {
+	font-weight: 600;
+	white-space: nowrap;
+}
+.cmd-desc {
+	color: var(--muted);
+}
+.notice {
+	font-size: 12px;
+	color: var(--muted);
+	padding: 2px 6px 6px;
+}
+
+/* Chat pane anchors absolutely-positioned children: the right-side tool
+ *  drawer and the floating LivePanel (both within .chat — the FULL row, so
+ *  the panel sits outside the 780px chat-main cap, in the freed space). */
+.chat {
+	position: relative;
+}
+
+/* Tool-call block: consecutive calls listed one-per-row inside one card.
+ *  Row = status glyph + tool-name label + key-arg text; click → side panel. */
+.tool-block {
+	/* Border-free message list: tool groups are flat, separated by spacing
+	   alone; only the sub-call card keeps its accent tint. */
+	border: none;
+	border-radius: 6px;
+	background: none;
+	overflow: hidden;
+}
+.tool-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 10px;
+	font-size: 13px;
+	cursor: pointer;
+	min-width: 0;
+}
+.tool-row + .tool-row {
+	border-top: none;
+}
+.tool-row:hover {
+	background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.tool-row.active {
+	background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+/* Failed call: a faint red wash on the whole row (the × glyph alone doesn't
+ * read at a glance when scanning a long block). */
+.tool-row.errored {
+	background: color-mix(in srgb, var(--danger) 8%, transparent);
+}
+.tool-row.errored:hover {
+	background: color-mix(in srgb, var(--danger) 13%, transparent);
+}
+.tool-row.errored .tr-arg {
+	color: color-mix(in srgb, var(--danger) 55%, var(--muted));
+}
+/* Status glyph in a FIXED centered box: ✓/×/⟳ all render inside the same
+ * 15×15 cell (inline-flex + line-height 1), so success and error icons line
+ * up row after row regardless of each glyph's natural metrics. */
+.tr-status {
+	flex: none;
+	width: 15px;
+	height: 15px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 11px;
+	line-height: 1;
+}
+.tr-status.ok {
+	color: var(--ok);
+}
+/* `err`, not `error` — a bare .error class exists elsewhere (the composer's
+   error banner) and must not leak into these glyphs. */
+.tr-status.err {
+	color: var(--danger);
+}
+.tr-status.running {
+	color: var(--accent-2);
+}
+.tr-status.pending,
+.tr-status.denied {
+	color: var(--muted);
+}
+.tr-name {
+	flex: none;
+	font-family: var(--mono);
+	font-weight: 600;
+	font-size: 12px;
+	color: var(--accent);
+}
+.tr-arg {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--muted);
+	font-size: 12px;
+}
+/* "… 展开 N 个" row in a collapsed over-long tool block. */
+.tool-row.more {
+	width: 100%;
+	background: none;
+	border: none;
+	color: var(--muted);
+	font-size: 12px;
+	cursor: pointer;
+	text-align: left;
+}
+.tool-row.more:hover {
+	color: var(--accent);
+}
+.tr-more {
+	flex: none;
+	font-size: 12px;
+}
+
+/* run_agent call: its OWN card, visually distinct from tool blocks (blue
+ * tint) — it stands for a sub-agent conversation you can drill into, not a
+ * mere tool call to inspect. */
+.sub-call {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	padding: 7px 12px;
+	border: none;
+	border-radius: 6px;
+	background: color-mix(in srgb, var(--accent-2) 8%, var(--panel-2));
+	cursor: pointer;
+	min-width: 0;
+}
+.sub-call:hover,
+.sub-call.active {
+	background: color-mix(in srgb, var(--accent-2) 14%, var(--panel-2));
+	border-color: color-mix(in srgb, var(--accent-2) 55%, var(--border));
+}
+.sub-call.error {
+	border-left-color: var(--danger);
+	background: color-mix(in srgb, var(--danger) 7%, var(--panel-2));
+}
+.sc-kind {
+	flex: none;
+	font-family: var(--mono);
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--accent-2);
+}
+.sc-task {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 12.5px;
+	color: var(--text);
+}
+/* 转后台（同步 run_agent 运行中）：把阻塞调用转成后台任务（结果以消息送达） */
+.sc-detach {
+	flex: none;
+	font-size: 11px;
+	padding: 2px 8px;
+	border-radius: 5px;
+	border: 1px solid var(--border);
+	background: var(--panel);
+	color: var(--text-dim, var(--text));
+	cursor: pointer;
+}
+.sc-detach:hover {
+	border-color: var(--accent-2);
+	color: var(--accent-2);
+	background: color-mix(in srgb, var(--accent-2) 8%, var(--panel));
+}
+.sc-status {
+	flex: none;
+	font-size: 11px;
+	color: var(--muted);
+}
+.sc-status.ok {
+	color: var(--ok);
+}
+/* `err` not `error` — keep the composer's bare .error banner out of these. */
+.sc-status.err {
+	color: var(--danger);
+}
+.sc-status.running {
+	color: var(--accent-2);
+}
+/* Live marker: a pulsing middle dot (same rhythm as the live-panel dot). */
+.sc-pulse {
+	display: inline-block;
+	font-style: normal;
+	font-size: 18px;
+	font-weight: 700;
+	line-height: 1;
+	transform: translateY(-1px);
+	animation: sc-dot-pulse 1.2s ease-in-out infinite;
+}
+@keyframes sc-dot-pulse {
+	0%,
+	100% {
+		opacity: 0.35;
+		transform: translateY(-1px) scale(0.8);
+	}
+	50% {
+		opacity: 1;
+		transform: translateY(-1px) scale(1.25);
+	}
+}
+.sc-go {
+	flex: none;
+	color: var(--muted);
+	font-size: 14px;
+	line-height: 1;
+}
+.sub-call:hover .sc-go {
+	color: var(--accent-2);
+}
+
+/* workflow call: its OWN card (violet tint + ⛓) — it stands for a whole
+ * deterministic multi-agent run, with live progress streamed inside. */
+.wf-call {
+	display: block;
+	width: 100%;
+	padding: 8px 12px;
+	border-radius: 6px;
+	background: color-mix(in srgb, #8957e5 8%, var(--panel-2));
+	cursor: pointer;
+	min-width: 0;
+}
+.wf-call:hover,
+.wf-call.active {
+	background: color-mix(in srgb, #8957e5 14%, var(--panel-2));
+}
+.wf-call.error {
+	background: color-mix(in srgb, var(--danger) 7%, var(--panel-2));
+}
+.wf-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+.wf-kind {
+	flex: none;
+	font-size: 13px;
+	line-height: 1;
+}
+.wf-name {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-family: var(--mono);
+	font-size: 12.5px;
+	font-weight: 600;
+	color: #a371f7;
+}
+.wf-call.error .wf-name {
+	color: var(--danger);
+}
+/* Project settings panel (settings → 项目) — a card, like every other tab. */
+.project-settings {
+	max-width: 48em;
+}
+.project-settings h3 {
+	margin: 8px 0 4px;
+	font-size: 14px;
+}
+.cw-choices {
+	display: flex;
+	gap: 16px;
+	flex-wrap: wrap;
+	margin: 10px 0;
+}
+.cw-choices label {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	cursor: pointer;
+}
+.project-settings .notice {
+	color: var(--accent);
+	font-size: 12.5px;
+}
+
+/* run_agent card progress: one row per sub-agent (fan-out strand / until
+   round), or a single live line for a plain delegation. */
+.sc-progress {
+	margin: 2px 0 0 10px;
+	padding: 4px 8px;
+	border-left: 2px solid var(--border);
+	font-size: 11.5px;
+	color: var(--muted);
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.sc-progress.one {
+	font-variant-numeric: tabular-nums;
+}
+.sc-phase {
+	font-size: 10.5px;
+	opacity: 0.75;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+.sc-step {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+	border-radius: 4px;
+	padding: 1px 3px;
+}
+.sc-step.link {
+	cursor: pointer;
+}
+.sc-step.link:hover {
+	background: var(--panel-2);
+	color: var(--text);
+}
+.sc-step-label {
+	flex: 0 0 auto;
+	color: var(--text);
+}
+.sc-step-preview {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.wf-progress {
+	margin-top: 5px;
+	font-family: var(--mono);
+	font-size: 11px;
+	color: var(--muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.wf-detail {
+	margin: 6px 0 0;
+	padding: 6px 8px;
+	border-radius: 4px;
+	background: color-mix(in srgb, #8957e5 5%, var(--panel));
+	font-family: var(--mono);
+	font-size: 11px;
+	line-height: 1.55;
+	color: var(--text);
+	white-space: pre-wrap;
+	word-break: break-word;
+	max-height: 132px; /* ~8 progress lines, then scrolls inside */
+	overflow: auto;
+}
+
+/* ---- workflow drill-in view (a drill column like SubAgentView) ---- */
+.wf-view .messages {
+	padding: 10px 14px;
+}
+.wf-sec-label {
+	margin: 10px 0 4px;
+	font-size: 10.5px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	color: #a371f7;
+}
+.wf-view .wf-sec-label:first-child {
+	margin-top: 0;
+}
+.wf-phases {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-bottom: 8px;
+}
+.wf-phase {
+	font-size: 11px;
+	color: var(--muted);
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	padding: 1px 8px;
+	white-space: nowrap;
+}
+.wf-phase.current {
+	color: #a371f7;
+	border-color: color-mix(in srgb, #8957e5 55%, var(--border));
+	animation: sc-dot-pulse 1.2s ease-in-out infinite;
+}
+.wf-step {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 5px 8px;
+	border-radius: 6px;
+	background: color-mix(in srgb, #8957e5 5%, var(--panel-2));
+	font-size: 12px;
+	min-width: 0;
+	margin-bottom: 3px;
+}
+.wf-step-ic {
+	flex: none;
+	font-size: 12px;
+	line-height: 1;
+	color: var(--muted);
+}
+.wf-step.done .wf-step-ic,
+.wf-step-ic.ok {
+	color: var(--ok);
+}
+.wf-step.error .wf-step-ic {
+	color: var(--danger);
+}
+.wf-step.running .wf-step-ic,
+.wf-step-ic.run {
+	color: #a371f7;
+}
+.wf-step-label {
+	flex: none;
+	max-width: 40%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--text);
+}
+.wf-step-phase {
+	flex: none;
+	font-size: 10px;
+	color: var(--muted);
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	padding: 0 4px;
+	line-height: 15px;
+	white-space: nowrap;
+}
+.wf-step-preview {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 11px;
+	color: var(--muted);
+}
+.wf-logs {
+	margin: 6px 0 0;
+	padding: 6px 8px;
+	border-radius: 4px;
+	background: var(--panel);
+	font-family: var(--mono);
+	font-size: 11px;
+	color: var(--muted);
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+.wf-agent {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	padding: 6px 8px;
+	margin-bottom: 3px;
+	border: none;
+	border-radius: 6px;
+	background: none;
+	font-size: 12.5px;
+	color: var(--text);
+	text-align: left;
+	cursor: pointer;
+	min-width: 0;
+}
+.wf-agent:hover {
+	background: color-mix(in srgb, #8957e5 10%, transparent);
+}
+.wf-agent-name {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.wf-result {
+	margin: 0;
+	padding: 8px 10px;
+	border-radius: 6px;
+	background: var(--panel);
+	font-family: var(--mono);
+	font-size: 11.5px;
+	line-height: 1.6;
+	color: var(--text);
+	white-space: pre-wrap;
+	word-break: break-word;
+	max-height: 40%;
+	overflow: auto;
+}
+.tr-count {
+	flex: 1;
+	text-align: right;
+	font-size: 11px;
+	opacity: 0.7;
+}
+
+/* Right-side drawer for tool-call details. */
+.drawer-overlay {
+	position: absolute;
+	inset: 0;
+	z-index: 40;
+	pointer-events: none;
+}
+.drawer-backdrop {
+	position: absolute;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.4);
+	pointer-events: auto;
+}
+.drawer {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	width: min(520px, 92vw);
+	background: var(--panel);
+	border-left: 1px solid var(--border);
+	display: flex;
+	flex-direction: column;
+	pointer-events: auto;
+	animation: drawer-slide 0.18s ease;
+}
+@keyframes drawer-slide {
+	from {
+		transform: translateX(100%);
+	}
+	to {
+		transform: translateX(0);
+	}
+}
+.drawer-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px 16px;
+	border-bottom: 1px solid var(--border);
+}
+.drawer-title {
+	font-weight: 600;
+	font-size: 14px;
+}
+.drawer-close {
+	background: none;
+	border: none;
+	color: var(--muted);
+	font-size: 16px;
+	cursor: pointer;
+}
+.drawer-close:hover {
+	color: var(--text);
+}
+.drawer-body {
+	flex: 1;
+	overflow-y: auto;
+	padding: 12px 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+.tool-detail {
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	overflow: hidden;
+}
+.tool-detail.error {
+	border-color: var(--danger);
+}
+.tool-detail .tool-name {
+	font-weight: 600;
+	font-family: var(--mono);
+	font-size: 13px;
+}
+.tool-detail .tool-status {
+	font-size: 12px;
+	color: var(--muted);
+}
+.tool-section {
+	padding: 8px 12px;
+	border-top: 1px solid var(--border);
+}
+.tool-section-label {
+	font-size: 11px;
+	color: var(--muted);
+	margin-bottom: 4px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+.tool-args-full,
+.tool-out-full {
+	margin: 0;
+	white-space: pre-wrap;
+	word-break: break-word;
+	font-family: var(--mono);
+	font-size: 12px;
+}
+.tool-out-full {
+	max-height: 60vh;
+	overflow: auto;
+}
+
+/* Tool detail side panel — the INNER card body reused inside the dock. */
+.tool-panel-body {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding: 4px 0 10px;
+}
+
+/* ------------------------- right dock (preview parking) ------------------ */
+/* Third column: every expanded preview (tool detail / HTML demo) stacks here
+ * as cards. No close buttons — cards accumulate until the session switches.
+ * Each card's left-edge arrow tracks the row that opened it (--arrow-top,
+ * updated by the scroll-capture listener in useArrowTracker). */
+.dock {
+	/* Viewport-fixed third column: clears the tab bar (which spans the middle
+	   column's top) — the workspace reserves the width via body.has-dock. */
+	position: fixed;
+	top: var(--topbar-h);
+	right: 0;
+	bottom: 0;
+	z-index: 30;
+	display: flex;
+	flex-direction: column;
+	border-left: 1px solid var(--border);
+	background: var(--panel);
+	box-shadow: -8px 0 24px rgba(0, 0, 0, 0.25);
+}
+/* Close (✕): closes the preview. Sits top-right, above the resizer. */
+.dock-close {
+	position: absolute;
+	top: 6px;
+	right: 10px;
+	z-index: 2;
+	border: none;
+	background: none;
+	color: var(--muted);
+	font-size: 12px;
+	line-height: 1;
+	padding: 4px 6px;
+	border-radius: 4px;
+	cursor: pointer;
+	opacity: 0.5;
+}
+.dock-close:hover {
+	opacity: 1;
+	color: var(--danger);
+}
+.dock-resizer {
+	position: absolute;
+	left: -3px;
+	top: 0;
+	width: 6px;
+	height: 100%;
+	cursor: col-resize;
+	z-index: 6;
+	background: transparent;
+}
+.dock-resizer:hover {
+	background: color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.dock-scroll {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 10px;
+}
+/* Single-slot mode: the one card fills the whole preview area. */
+.dock-scroll.single {
+	gap: 0;
+	padding: 0;
+}
+.dock-scroll.single .dock-card {
+	flex: 1;
+	min-height: 0;
+	border-radius: 0;
+	border-width: 0;
+	border-left-width: 0;
+}
+.dock-card {
+	position: relative;
+	flex: none;
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	background: var(--panel);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	animation: tool-panel-slide 0.16s ease;
+}
+/* The left-pointing bubble arrow, pinned to the card's left edge at the
+   anchored row's current scroll position. */
+.dock-card[data-anchor]::before {
+	content: "";
+	position: absolute;
+	left: -7px;
+	top: var(--arrow-top, 24px);
+	transform: translateY(-50%);
+	border-top: 7px solid transparent;
+	border-bottom: 7px solid transparent;
+	border-right: 7px solid var(--border);
+	z-index: 2;
+}
+.dock-card[data-anchor]::after {
+	content: "";
+	position: absolute;
+	left: -5px;
+	top: var(--arrow-top, 24px);
+	transform: translateY(-50%);
+	border-top: 6px solid transparent;
+	border-bottom: 6px solid transparent;
+	border-right: 6px solid var(--panel-2);
+	z-index: 2;
+}
+.dock-card-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 14px;
+	border-bottom: 1px solid var(--border);
+	background: var(--panel-2);
+}
+.dock-card-head .tool-name {
+	/* Single rule (was two accreted blocks with conflicting flex/max-width):
+	   grows to fill the head but caps at half so the status stays visible. */
+	font-weight: 600;
+	font-family: var(--mono);
+	font-size: 13px;
+	flex: 1;
+	min-width: 0;
+	max-width: 50%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.dock-card-url {
+	flex: 1;
+	min-width: 0;
+	font-family: var(--mono);
+	font-size: 11px;
+	color: var(--muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.dock-card.gone {
+	padding: 8px 12px;
+}
+.demo-card .demo-frame {
+	/* Single slot: the demo page fills the card's body (page scrolls inside). */
+	flex: 1;
+	min-height: 0;
+	width: 100%;
+	border: none;
+}
+.dock-card-head .tool-status {
+	font-size: 12px;
+	color: var(--muted);
+	flex: none;
+}
+.dock-card-head .tool-status.error {
+	color: var(--danger);
+}
+.dock-card-head .tool-status.ok {
+	color: var(--ok);
+}
+.tool-panel-body {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding: 4px 0 10px;
+}
+/* Args as a kv grid (never raw JSON): key column left, value right. */
+.kv-grid {
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+}
+.kv-row {
+	display: grid;
+	grid-template-columns: minmax(90px, max-content) 1fr;
+	gap: 0 12px;
+	padding: 6px 12px;
+	border-bottom: 1px solid var(--border);
+}
+.kv-row:last-child {
+	border-bottom: none;
+}
+.kv-row dt {
+	font-family: var(--mono);
+	font-size: 12px;
+	color: var(--muted);
+	white-space: nowrap;
+	padding-top: 1px;
+}
+.kv-row dd {
+	margin: 0;
+	font-family: var(--mono);
+	font-size: 12px;
+	white-space: pre-wrap;
+	word-break: break-word;
+	max-height: 240px;
+	overflow-y: auto;
+}
+
+/* Interactive tool: rendered INLINE and expanded (needs the user's feedback). */
+.msg.tool.interactive .inline-tool {
+	border: 1px solid var(--accent);
+	border-radius: 8px;
+	overflow: hidden;
+	background: var(--panel-2);
+}
+.msg.tool.interactive.error .inline-tool {
+	border-color: var(--danger);
+}
+.msg.tool.interactive .inline-tool-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 8px 12px;
+	background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.msg.tool.interactive .inline-tool .tool-name {
+	font-weight: 600;
+	font-family: var(--mono);
+	font-size: 13px;
+}
+.msg.tool.interactive .inline-tool .tool-status {
+	font-size: 12px;
+	color: var(--accent-2);
+}
+.msg.tool.interactive .tool-args-full,
+.msg.tool.interactive .tool-out-full {
+	padding: 8px 12px;
+	border-top: 1px solid var(--border);
+}
+.msg.tool.interactive .inline-tool-actions {
+	display: flex;
+	gap: 8px;
+	padding: 8px 12px;
+	border-top: 1px solid var(--border);
+}
+.inline-tool-actions button {
+	font-size: 13px;
+	padding: 5px 18px;
+	border-radius: 6px;
+	border: 1px solid var(--border);
+	background: transparent;
+	color: var(--text);
+	cursor: pointer;
+}
+.inline-tool-actions button.approve {
+	background: var(--ok);
+	border-color: var(--ok);
+	color: #00110a;
+	font-weight: 600;
+}
+.inline-tool-actions button.approve:hover {
+	filter: brightness(1.1);
+}
+.inline-tool-actions button.deny {
+	border-color: var(--danger);
+	color: var(--danger);
+}
+.inline-tool-actions button.deny:hover {
+	background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
+/* Composer chrome: one editor-style box = toolbar (mode select) + input.
+   No frame — only a TOP hairline separating the composer from the messages
+   above (the inner .composer's own border-top is suppressed below so the
+   single line lives on the box).
+   FOCUSED (default layout): a column — full toolbar row on top, big textarea
+   below (grows to half of chat-main). UNFOCUSED: the box collapses to ONE
+   line — [mode ▾][input field…] — the toolbar shrinks to just the mode
+   select; every other toolbar child is display:none until focus returns. */
+.composer-box {
+	display: flex;
+	flex-direction: column;
+	border: none;
+	border-top: 1px solid var(--border);
+	border-radius: 0;
+	background: var(--panel);
+	transition: background 0.15s ease;
+	/* No overflow: hidden here — the live-activity popover (absolute,
+	   bottom:100%) must escape upward. Nothing inside paints past the corners
+	   (toolbar has no bg, textarea is borderless/transparent, and
+	   .composer clips its own scrollbar), so clipping bought nothing. */
+}
+.composer-box:not(.focused) {
+	flex-direction: row;
+	align-items: center;
+}
+.composer-box:not(.focused) .composer-toolbar {
+	flex: 0 0 auto;
+}
+.composer-box:not(.focused) .composer-toolbar > :not(.mode-select):not(.qm-toggle) {
+	display: none;
+}
+.composer-box:not(.focused) .composer {
+	flex: 1;
+}
+/* One-line textarea while minimized (the 44px unfocused height is for the
+   old standalone-row look; in the merged line it would tower over the
+   select). Focus still animates from here up to --focus-h. */
+.composer-box:not(.focused) .composer textarea {
+	height: 34px;
+	min-height: 34px;
+	padding: 7px 12px;
+}
+/* Focus lands on the BOX (the textarea inside is borderless): the border
+   stays put; the background sinks a shade darker than the resting panel —
+   a "sunken well" cue that this is where typing goes. */
+.composer-box.focused {
+	background: var(--bg);
+}
+.composer-box .composer {
+	border-top: none;
+}
+.composer-toolbar {
+	display: flex;
+	align-items: center;
+	padding: 0 6px;
+}
+/* Toolbar items are flat text actions (no boxes); a thin separator between
+   neighbors replaces each item's own border. */
+.composer-toolbar > * + * {
+	border-left: 1px solid var(--border);
+}
+.mode-select {
+	background: transparent;
+	color: var(--text);
+	border: none;
+	font-size: 12px;
+	padding: 6px 10px;
+	cursor: pointer;
+}
+.mode-select:hover:not(:disabled) {
+	border-color: var(--accent);
+}
+.mode-select:focus {
+	outline: 1px solid var(--accent);
+}
+.mode-select:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+/* Queue-mode toggle (mid-run sends): two flat buttons sharing a well; the
+   active one is lit. Kept visible in the collapsed toolbar next to the mode
+   select — the mode pick must be settable BEFORE a busy send, and the count
+   badges are exactly what the user glances at while a run streams. */
+.qm-toggle {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	padding: 0 4px;
+}
+.qm-btn {
+	background: transparent;
+	border: none;
+	color: var(--muted);
+	font-size: 12px;
+	padding: 6px 6px;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	border-radius: 6px;
+}
+.qm-btn:hover {
+	color: var(--text);
+}
+.qm-btn.on {
+	color: var(--accent);
+	background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.qm-n {
+	font-size: 10px;
+	font-family: var(--mono);
+	background: var(--accent);
+	color: var(--bg);
+	border-radius: 8px;
+	padding: 0 5px;
+	line-height: 15px;
+	min-width: 15px;
+	text-align: center;
+}
+/* Per-message + session token usage readouts. */
+.msg-usage {
+	font-size: 11px;
+	color: var(--muted);
+	font-family: var(--mono);
+	padding: 2px 4px 0;
+	text-align: right;
+}
+.token-usage {
+	font-size: 11px;
+	color: var(--muted);
+	font-family: var(--mono);
+	white-space: nowrap;
+}
+/* Checkpoint toolbar button + drawer list. */
+.cp-btn {
+	background: transparent;
+	border: none;
+	color: var(--muted);
+	font-size: 12px;
+	padding: 6px 10px;
+	cursor: pointer;
+}
+.cp-btn:hover {
+	color: var(--text);
+}
+.cp-btn:disabled {
+	opacity: 0.4;
+	cursor: default;
+}
+/* Handoff button: armed (enabled) only mid-run — signal that it's an action on
+   the in-flight turn, not a passive status control. */
+.cp-btn:not(:disabled) {
+	color: var(--accent);
+}
+.cp-item {
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	overflow: hidden;
+}
+.cp-item-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 8px 12px;
+	background: var(--panel-2);
+}
+.cp-seq {
+	font-weight: 600;
+	font-family: var(--mono);
+}
+.cp-time {
+	color: var(--muted);
+	font-size: 12px;
+	flex: 1;
+}
+.cp-restore {
+	background: var(--accent-2);
+	border: none;
+	color: #04101f;
+	font-size: 12px;
+	font-weight: 600;
+	padding: 4px 12px;
+	border-radius: 6px;
+	cursor: pointer;
+}
+.cp-restore:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+.cp-files {
+	padding: 6px 12px;
+	font-family: var(--mono);
+	font-size: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.cp-file {
+	color: var(--muted);
+	word-break: break-all;
+}
+/* Compaction-summary viewer (drawer). */
+.summary-pre {
+	margin: 0;
+	white-space: pre-wrap;
+	word-break: break-word;
+	font-size: 13px;
+	line-height: 1.6;
+	font-family: inherit;
+	color: var(--text);
+}
+
+/* ----------------------------- workspace (sidebar + chat) ------------------------------ */
+.workspace {
+	display: grid;
+	/* First track follows the sidebar's own width (set inline by the
+	   resizer, clamped 180–520px); the chat pane takes the rest. When the
+	   fixed right dock is showing, its width is reserved here so the middle
+	   column stops short of it (body.has-dock sets --dock-w). */
+	grid-template-columns: auto 1fr;
+	height: 100%;
+	min-height: 0;
+}
+body.has-dock .workspace {
+	grid-template-columns: auto 1fr var(--dock-w, 440px);
+}
+
+.sidebar {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	border-right: 1px solid var(--border);
+	background: var(--panel);
+}
+/* Drag handle hugging the sidebar's right edge (desktop only — the mobile
+   drawer is overlay-fixed and its width is set by CSS, which wins over the
+   component's inline px). Double-click resets to the default width. */
+.sidebar-resizer {
+	position: absolute;
+	top: 0;
+	right: -3px;
+	width: 6px;
+	height: 100%;
+	cursor: col-resize;
+	z-index: 5;
+	background: transparent;
+}
+.sidebar-resizer:hover {
+	background: color-mix(in srgb, var(--accent) 25%, transparent);
+}
+/* While dragging: no text selection anywhere, and the col-resize cursor
+   sticks even when the pointer overshoots the 6px handle. */
+body.resizing-col,
+body.resizing-col * {
+	cursor: col-resize !important;
+	user-select: none !important;
+}
+/* One scale for the rail. Every top-level row — 项目, 记忆, 设置 — is
+   --rail-row tall with --rail-inset horizontal padding and 13px text; sessions
+   sit one step in under 项目. Keeping the numbers here rather than on each rule
+   is what keeps the three rows from drifting apart again. */
+.sidebar {
+	--rail-row: 28px;
+	--rail-inset: 12px;
+	--rail-gutter: 6px;
+}
+.sidebar-head {
+	padding: var(--rail-gutter) 0 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.rail-head {
+	cursor: default;
+}
+.rail-head .label {
+	flex: 1;
+}
+.rail-head .rail-add {
+	margin-left: auto;
+	margin-right: -4px;
+}
+/* The rail's controls are all bare glyphs on the same 28px hit box: no filled
+   plate anywhere in the sidebar, so the one blue thing on screen is the
+   selected session. */
+.rail-add {
+	/* Always visible — the row-hover reveal that .icon-btn defaults to is for
+	   per-row actions; this is the rail's one standing control. */
+	opacity: 0.7 !important;
+	color: var(--muted);
+}
+.rail-add:hover {
+	opacity: 1;
+	color: var(--text);
+	background: var(--panel-2);
+}
+
+/* new-project form */
+.tree-form {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.tree-form input {
+	width: 100%;
+	font-size: 12px;
+	padding: 6px 8px;
+}
+
+/* path autocomplete */
+.path-input {
+	position: relative;
+}
+.path-suggest {
+	position: absolute;
+	z-index: 20;
+	left: 0;
+	right: 0;
+	list-style: none;
+	margin: 2px 0 0;
+	padding: 2px;
+	max-height: 220px;
+	overflow-y: auto;
+	background: var(--panel-2);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+.path-suggest-item {
+	display: block;
+	width: 100%;
+	text-align: left;
+	background: transparent;
+	color: var(--text);
+	border: 0;
+	border-radius: 6px;
+	padding: 5px 8px;
+	font: inherit;
+	font-size: 12px;
+	cursor: pointer;
+}
+.path-suggest-item.active,
+.path-suggest-item:hover {
+	background: var(--panel);
+	color: var(--accent);
+}
+.path-suggest-hint {
+	padding: 5px 8px;
+	color: var(--muted);
+	font-size: 12px;
+}
+
+/* tree */
+.tree {
+	flex: 1;
+	overflow-y: auto;
+	/* Reserve the scrollbar gutter so the rows' right gap doesn't collapse when
+	   the list grows long enough to scroll (same trick as the messages area). */
+	scrollbar-gutter: stable;
+	padding: 2px 0 var(--rail-gutter);
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+}
+.tree-project {
+	display: flex;
+	flex-direction: column;
+}
+.tree-node {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-height: var(--rail-row);
+	padding: 0 var(--rail-inset);
+	border-radius: 0;
+	font-size: 13px;
+	line-height: 1.3;
+	color: var(--text);
+	text-decoration: none;
+	cursor: pointer;
+	min-width: 0;
+}
+.tree-node .label {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.project-row {
+	font-weight: 500;
+}
+.project-row:hover,
+.session-row:hover {
+	background: var(--panel-2);
+}
+.project-row.open {
+	color: var(--text);
+}
+/* The assistant: a leaf project row that is itself the session link. */
+.project-row.leaf {
+	text-decoration: none;
+	color: inherit;
+}
+.project-row.leaf.active {
+	background: var(--panel-2);
+	color: var(--text);
+}
+.icon {
+	width: 16px;
+	height: 16px;
+	flex: 0 0 auto;
+	display: block;
+}
+.caret {
+	width: 16px;
+	height: 16px;
+	color: var(--muted);
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+/* Disclosure caret turns rather than swapping glyphs — one icon, two states. */
+.caret .icon-caret {
+	transition: transform 0.15s ease;
+}
+.caret.open .icon-caret {
+	transform: rotate(90deg);
+}
+.tree-children {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	padding: 1px 0 2px 10px;
+	border-left: 1px solid var(--border);
+	margin: 1px 0 1px 15px;
+}
+/* One step lighter than its parent row: shorter, smaller, muted. min-height
+   must be restated — .tree-node's own min-height would otherwise win. */
+.session-row.tree-node {
+	min-height: 26px;
+	font-size: 12.5px;
+}
+/* Row actions inside a rail row: the ROW is the tap target, so these glyphs
+   can sit at 24px without shrinking anything a finger needs — and at 28px they
+   were what held every row open past its own height. */
+.tree-node .icon-btn {
+	min-width: 24px;
+	min-height: 24px;
+	padding: 0 4px;
+}
+.session-row {
+	font-weight: 400;
+	color: var(--muted);
+}
+.status-dot {
+	flex: 0 0 auto;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--muted);
+	opacity: 0.4;
+}
+.status-dot.connecting {
+	background: #d29922;
+	opacity: 1;
+}
+.status-dot.ready {
+	background: var(--ok);
+	opacity: 1;
+}
+.status-dot.busy {
+	background: var(--accent-2);
+	opacity: 1;
+	animation: status-dot-pulse 1.4s ease-in-out infinite;
+}
+@keyframes status-dot-pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.35;
+	}
+}
+/* Selected session: background-only — no border/outline, just the wash. */
+.session-row.active {
+	background: var(--panel-2);
+	color: var(--accent);
+}
+.indent {
+	padding: 4px 8px;
+}
+.icon-btn {
+	flex: 0 0 auto;
+	background: transparent;
+	color: var(--muted);
+	/* 28px minimum on both axes: below ~24px a control is a mis-tap on touch and
+	   a fiddly hover on a trackpad. The glyph stays small; the hit area does not. */
+	min-width: 28px;
+	min-height: 28px;
+	padding: 0 6px;
+	font-size: 15px;
+	line-height: 1.4;
+	border-radius: 6px;
+	opacity: 0;
+}
+.tree-node:hover .icon-btn {
+	opacity: 0.7;
+}
+.icon-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+.icon-btn:hover {
+	opacity: 1 !important;
+	color: var(--danger);
+}
+.icon-btn.edit:hover,
+.icon-btn.add:hover {
+	color: var(--accent);
+}
+/* Row "..." menu: the row's actions (rename / terminate / delete) collapsed
+   behind one button, opening a dropdown right-aligned BELOW it. position:FIXED
+   at coords captured at open time, because the tree is an overflow-y scroller
+   that would clip an absolutely-positioned child. */
+.row-menu-wrap {
+	display: inline-flex;
+	align-items: center;
+	flex: 0 0 auto;
+	margin-left: auto;
+	/* The row's 12px inset plus the button's own padding left the glyph ~18px
+	   off the rail edge; pull the hit area into the inset instead. */
+	margin-right: -8px;
+}
+/* The button stays lit while its menu is open (it would fade with the row's
+   hover reveal otherwise), and hovering it must not take .icon-btn's danger
+   red — it is a menu, not a delete. */
+.icon-btn.row-menu-btn:hover,
+.icon-btn.row-menu-btn.open {
+	opacity: 1 !important;
+	color: var(--text);
+	background: var(--panel-2);
+}
+.row-menu {
+	position: fixed;
+	z-index: 90;
+	min-width: 132px;
+	display: flex;
+	flex-direction: column;
+	padding: 4px;
+	background: var(--panel);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+.row-menu-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	min-height: 28px;
+	padding: 4px 10px;
+	background: transparent;
+	color: var(--text);
+	border: 0;
+	border-radius: 6px;
+	font-size: 12.5px;
+	text-align: left;
+	white-space: nowrap;
+	cursor: pointer;
+}
+.row-menu-item .icon {
+	width: 14px;
+	height: 14px;
+	color: var(--muted);
+}
+.row-menu-item:hover:not(:disabled) {
+	filter: none;
+	background: var(--panel-2);
+}
+.row-menu-item.destructive,
+.row-menu-item.destructive .icon {
+	color: var(--danger);
+}
+/* (`destructive`, not `danger`: a global button.danger rule paints a solid
+   red fill.) A confirm entry after its first click: filled, so the second click is a
+   deliberate act on a visibly different control. */
+.row-menu-item.armed,
+.row-menu-item.armed:hover:not(:disabled) {
+	background: var(--danger);
+	color: #fff;
+}
+.row-menu-item.armed .icon {
+	color: #fff;
+}
+
+.chat-pane {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	min-width: 0;
+	/* No padding here — the inner surfaces inset themselves (.messages and
+	   .composer-wrap carry the 20px side gutters; grid mode fills edge to
+	   edge). The tabbar's left calc tracks the same 20px content edge. */
+}
+
+/* tab bar — one tab per open session, LIVING IN THE TOPBAR: the strip rides
+   the header's bottom edge, so it costs zero chat-body height. Absolutely
+   positioned so its LEFT edge tracks the chat column (sidebar width via
+   --sidebar-w + the 20px messages gutter) instead of hugging the logo. Tabs
+   stay mounted across switches so background tabs keep streaming; only the
+   active chat-layer is visible.
+   Style: Tailwind UI's classic "underline" tabs (flat, text-only, a 2px
+   accent bottom border marks the active one) instead of a browser-style
+   chip — bottom-aligned so each tab's own border sits exactly on the
+   topbar's 1px border (margin-bottom: -1px draws over it). */
+.tabbar {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: calc(var(--sidebar-w, 240px) + 20px);
+	right: 8px;
+	display: flex;
+	align-items: flex-end;
+	gap: 20px;
+	/* Keep overflowing tabs clear of the bell/user controls on the right. */
+	padding-right: 48px;
+	overflow-x: auto;
+	scrollbar-width: thin;
+}
+/* Header controls stay ABOVE the (absolutely positioned) tab strip when tabs
+   overflow toward them. */
+.topbar .icon-btn,
+.topbar .topbar-user,
+.topbar .menu-toggle {
+	position: relative;
+	z-index: 2;
+}
+.tab {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	max-width: 200px;
+	min-width: 0;
+	padding: 8px 1px;
+	margin-bottom: -1px;
+	border-bottom: 2px solid transparent;
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--muted);
+	cursor: pointer;
+	background: transparent;
+}
+.tab:hover {
+	color: var(--text);
+	border-bottom-color: var(--border);
+}
+.tab.active {
+	color: var(--text);
+	font-weight: 600;
+	border-bottom-color: var(--accent);
+}
+.tab-title {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+/* The busy slot at a tab's right edge: a breathing dot while the session's
+   agent works, the × close button on hover — MUTUALLY EXCLUSIVE (hover hides
+   the dot, un-hover brings it back; idle tabs show neither). */
+.tab-slot {
+	flex: 0 0 auto;
+	position: relative;
+	width: 18px;
+	height: 16px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+.tab-close {
+	position: absolute;
+	inset: 0;
+	background: transparent;
+	color: var(--muted);
+	border: 0;
+	border-radius: 6px;
+	padding: 0;
+	font-size: 14px;
+	line-height: 1;
+	cursor: pointer;
+	opacity: 0; /* hidden unless the tab is hovered */
+	transition: opacity 100ms ease;
+}
+.tab:hover .tab-close {
+	opacity: 1;
+}
+.tab-close:hover {
+	color: var(--danger);
+	background: var(--panel);
+}
+.tab-close .icon {
+	width: 10px;
+	height: 10px;
+}
+/* Breathing light: a small dot pulsing while the agent behind the tab works.
+   Hover swaps it for the × — the slot never shows both. */
+.tab-live {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--ok);
+	box-shadow: 0 0 6px 1px color-mix(in srgb, var(--ok) 60%, transparent);
+	animation: tab-breathe 1.6s ease-in-out infinite;
+}
+.tab:hover .tab-live {
+	display: none;
+}
+@keyframes tab-breathe {
+	0%,
+	100% {
+		opacity: 0.35;
+		transform: scale(0.75);
+	}
+	50% {
+		opacity: 1;
+		transform: scale(1.15);
+	}
+}
+
+/* Grid monitor view: every open tab in its own live cell, laid out in the
+ * user-picked cols × rows. Click a cell → focus that tab. Ctrl + the handle
+ * in a cell's top-left corner drags it onto another cell to swap. */
+/* Grid monitor, table-tight: cells share edges (gap 0, hairline borders
+ * between them, no rounding) and the grid fills the whole chat-pane edge to
+ * edge (the pane itself has no padding).
+ * ACTIVE cell = full opacity; every other cell dims to 0.8. */
+.chat-grid {
+	flex: 1;
+	min-height: 0;
+	display: grid;
+	gap: 0;
+	border-top: 1px solid var(--border);
+	border-left: 1px solid var(--border);
+	background: var(--border); /* hairline seams through the cell gaps-less grid */
+}
+.grid-cell {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	overflow: hidden;
+	background: var(--bg);
+	border-right: 1px solid var(--border);
+	border-bottom: 1px solid var(--border);
+	opacity: 0.8; /* non-active cells dimmed; .active restores 1 */
+	position: relative;
+}
+.grid-cell.active {
+	opacity: 1;
+	background: var(--panel);
+}
+.grid-cell:hover {
+	opacity: 1;
+}
+/* Dragged SOURCE cell: collapses to its title bar (body unmounts in JSX) and
+ * dims — the ghost chip shows what's being moved, the cell shows where it
+ * LEFT. Its head stays fully opaque so the origin stays readable. */
+.grid-cell.dragging {
+	opacity: 0.45;
+}
+.grid-cell.dragging > .grid-cell-head {
+	opacity: 1;
+}
+/* Empty slot: subtle receptacle — normally near-invisible, but during a drag
+ * it lights up as a drop affordance (dashed accent inset). */
+.grid-cell.empty {
+	background: color-mix(in srgb, var(--panel) 45%, transparent);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border) 60%, transparent);
+}
+/* Drop target: where the release will land — strong accent wash + dashed
+ * inset + a caret ▸ in the head's spot pointing at the landing cell. */
+.grid-cell.drop-target {
+	outline: 2px dashed var(--accent);
+	outline-offset: -2px;
+	background: color-mix(in srgb, var(--accent) 14%, var(--bg));
+}
+.grid-cell.empty.drop-target {
+	background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+/* The drag ghost: a bare title chip (cloned head, parked OFF-SCREEN — the
+ * browser snapshots it for the drag image wherever it sits). */
+.grid-cell-head.drag-ghost {
+	position: fixed;
+	top: 0;
+	left: -3000px;
+	border-radius: 6px;
+	border: 1px solid var(--accent);
+	background: var(--panel-2);
+	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+	opacity: 0.95;
+	pointer-events: none;
+}
+/* Title-bar drag re-slots the cell (no modifier). user-select:none is
+ * load-bearing: a started text selection CANCELS the HTML5 drag. The grab
+ * cursor is permanent — the whole bar is the drag surface. */
+.grid-cell-head {
+	flex: none;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 10px;
+	border-bottom: 1px solid var(--border);
+	background: var(--panel-2);
+	user-select: none;
+	-webkit-user-select: none;
+	cursor: grab;
+	-webkit-user-drag: element;
+}
+.grid-cell-head:active {
+	cursor: grabbing;
+}
+.grid-cell-title {
+	flex: 1;
+	min-width: 0;
+	font-size: 11.5px;
+	font-weight: 600;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.grid-cell-body {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	/* pointer-events unlocked: every cell is fully operable (scroll + prompt
+	   input). Cell-level click-to-focus still works on the head/handle. */
+}
+.grid-cell-body > * {
+	flex: 1;
+	min-width: 0;
+}
+/* The grid-toggle + size-picker cluster at the tab strip's end. It rides the
+   strip's BOTTOM edge with the tabs (where a tab-strip "+" would sit), not the
+   topbar's vertical center — flex-end matches the tabs' baseline. */
+.grid-controls {
+	align-self: flex-end;
+	margin: 0 0 3px 6px;
+	flex: none;
+	position: relative; /* anchors the size-picker popover */
+	display: inline-flex;
+	align-items: center;
+	gap: 1px;
+}
+.grid-toggle {
+	width: 24px;
+	height: 24px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: transparent;
+	border: 1px solid transparent;
+	border-radius: 6px;
+	color: var(--muted);
+	padding: 0;
+	cursor: pointer;
+	/* .icon-btn defaults to opacity:0 (tree rows reveal on hover) — no tree
+	   ancestor here, so the toggle must carry its own resting opacity (same
+	   fix as the topbar bell). */
+	opacity: 0.75;
+}
+.grid-toggle .icon,
+.grid-size-btn .icon {
+	width: 14px;
+	height: 14px;
+}
+.grid-toggle:hover,
+.grid-size-btn:hover {
+	opacity: 1;
+	/* override .icon-btn:hover's red (delete-button semantics) */
+	color: var(--text);
+}
+.grid-toggle:hover {
+	border-color: var(--border);
+	background: var(--panel-2);
+}
+.grid-toggle.on {
+	color: var(--accent);
+	border-color: var(--accent);
+}
+.grid-size-btn {
+	width: 18px;
+	height: 24px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: transparent;
+	border: 1px solid transparent;
+	border-radius: 6px;
+	color: var(--muted);
+	padding: 0;
+	cursor: pointer;
+	opacity: 0.75; /* same as .grid-toggle — escape .icon-btn's opacity:0 default */
+}
+.grid-size-btn:hover {
+	color: var(--text);
+	background: var(--panel-2);
+}
+/* Size picker popover: doc-editor-style hover-diagonal table insert.
+ * position:FIXED at coords captured when opened — the tab strip is an
+ * overflow-x:auto scroller and would clip an absolutely-positioned child. */
+.grid-size-pop {
+	position: fixed;
+	z-index: 80;
+	padding: 10px;
+	background: var(--panel);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.pick-grid {
+	display: grid;
+	gap: 3px;
+}
+.pick-cell {
+	width: 16px;
+	height: 16px;
+	border-radius: 3px;
+	background: var(--panel-2);
+	border: 1px solid var(--border);
+	cursor: pointer;
+}
+.pick-cell.on {
+	background: color-mix(in srgb, var(--accent) 55%, var(--panel-2));
+	border-color: var(--accent);
+}
+.pick-caption {
+	margin-top: 8px;
+	font-size: 11.5px;
+	color: var(--text);
+	text-align: center;
+	white-space: nowrap;
+}
+.pick-caption .muted {
+	color: var(--muted);
+	margin-left: 4px;
+}
+/* stacked chat layers — siblings, only the active one shown; the rest stay in
+   the DOM (mounted) so their WebSockets keep streaming into the background. */
+.chat-stack {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
+.chat-layer {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
+.chat-layer[hidden] {
+	display: none;
+}
+.chat-empty {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	padding: 20px;
+}
+/* The empty state's fish is the logo itself, washed to 30% — it is a
+   background, not a subject. */
+.empty-logo {
+	display: block;
+	margin: 0 auto 14px;
+	opacity: 0.3;
+	filter: grayscale(0.2);
+}
+
+/* ----------------------------- responsive (mobile) ------------------------------ */
+@media (max-width: 760px) {
+	.workspace {
+		grid-template-columns: 1fr;
+	}
+	/* Narrow screens: the fixed 780px chat column gives way to the viewport. */
+	.chat-body {
+		width: auto;
+		max-width: none;
+		flex: 1 1 auto;
+	}
+	/* ☰ hamburger reveals the tree as an overlay drawer. */
+	.menu-toggle {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		background: transparent;
+		color: var(--text);
+		border: 0;
+		padding: 0 8px;
+		font-size: 20px;
+		line-height: 1;
+		cursor: pointer;
+		border-radius: 6px;
+	}
+	.menu-toggle:hover {
+		filter: none;
+		background: var(--panel-2);
+	}
+	/* The sidebar slides in from the right as an overlay drawer (fixed, out of
+	   grid flow). Starts below the topbar so the ☰ stays tappable. */
+	.sidebar {
+		position: fixed;
+		top: var(--topbar-h);
+		right: 0;
+		bottom: 0;
+		width: min(320px, 86vw);
+		z-index: 50;
+		border-right: 0;
+		border-left: 1px solid var(--border);
+		box-shadow: -10px 0 28px rgba(0, 0, 0, 0.45);
+		transform: translateX(100%);
+		transition: transform 0.22s ease;
+	}
+	.sidebar.open {
+		transform: translateX(0);
+	}
+	/* Tap-to-close scrim behind the drawer. */
+	.drawer-backdrop {
+		display: block;
+		position: fixed;
+		top: var(--topbar-h);
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.5);
+		z-index: 40;
+		opacity: 0;
+		pointer-events: none;
+		transition: opacity 0.22s ease;
+	}
+	.drawer-backdrop.open {
+		opacity: 1;
+		pointer-events: auto;
+	}
+	/* Header tabs on a phone: the sidebar is an overlay drawer, so there is no
+	   column to align with — flow after the brand again (static, tighter). */
+	.tabbar {
+		position: static;
+		top: auto;
+		bottom: auto;
+		left: auto;
+		right: auto;
+		flex: 1;
+		min-width: 0;
+		margin: 0 8px;
+		padding-right: 0;
+	}
+	.tab {
+		max-width: 150px;
+	}
+	/* Floating activity HUD: keep it from swallowing a phone-width column. */
+	.live-panel {
+		width: min(300px, calc(100vw - 90px));
+	}
+	/* Hide the email text on mobile; keep just the avatar + sign out. */
+	.topbar-user .user-email {
+		display: none;
+	}
+	/* The drawer is overlay-fixed with its own width — drop the desktop
+	   resizer and the inline px so it never fights the CSS. */
+	.sidebar {
+		width: min(320px, 86vw) !important;
+	}
+	.sidebar-resizer {
+		display: none;
+	}
+	.bubble {
+		max-width: 88%;
+	}
+}
+
+
+/* ---------------------------------------------------------------- settings
+   Settings view (#/settings): a full-height agent list beside a raw-markdown
+   prompt editor. Rendered as a sibling of .workspace, which is hidden (not
+   unmounted) behind it so open chat tabs keep their sockets. */
+.settings-link {
+	margin-left: auto;
+	padding: 0 10px;
+	font-size: 16px;
+	line-height: 1;
+	text-decoration: none;
+	color: var(--muted);
+}
+.settings-link:hover {
+	color: var(--text);
+}
+/* The user chip already claims the free space; don't split it two ways. */
+.topbar-user + .icon-btn.bell {
+	margin-left: 10px;
+}
+.settings {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	padding: 18px 22px;
+	overflow: hidden;
+}
+.settings-panel {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+}
+/* A disabled asset row in a settings list: present but clearly out of the
+   running (same signal as the admin table's .off rows). */
+.agent-item.off {
+	opacity: 0.55;
+}
+/* Tabs, antd "line" type: a 1px rail under the whole strip, a 2px ink bar
+   under the active tab that sits ON the rail (bottom: -1px), 32px items on a
+   32px gap, no per-tab background or border. Hover tints the text; only the
+   active tab gets the ink bar. */
+.settings-tabs {
+	display: flex;
+	gap: 32px;
+	margin-bottom: 16px;
+	border-bottom: 1px solid var(--border);
+	overflow-x: auto;
+}
+.settings-tabs button {
+	position: relative;
+	background: none;
+	border: none;
+	border-radius: 0;
+	color: var(--muted);
+	font: inherit;
+	font-size: 14px;
+	line-height: 22px;
+	padding: 8px 0 9px;
+	/* Phone: 8 tabs can't fit the row — the flex squeeze was compressing a
+	   two-CJK-char label to 14px wide (vertical wrap). Never shrink a tab;
+	   the ROW scrolls instead (overflow-x on .settings-tabs). */
+	flex: 0 0 auto;
+	white-space: nowrap;
+	min-height: 39px;
+	cursor: pointer;
+	transition: color 0.15s;
+}
+.settings-tabs button:hover {
+	color: var(--accent);
+	filter: none;
+}
+.settings-tabs button.active {
+	color: var(--accent);
+	font-weight: 500;
+}
+.settings-tabs button.active::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: -1px;
+	height: 2px;
+	background: var(--accent);
+	border-radius: 1px 1px 0 0;
+}
+.settings-head {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+}
+.settings-head h2 {
+	margin: 0;
+	font-size: 17px;
+}
+.settings-head select {
+	/* The scope picker sat at 19px tall — under the 24px target floor. */
+	padding: 4px 8px;
+	min-height: 26px;
+}
+.settings-scope {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	color: var(--muted);
+}
+
+/* ------------------------- plan (DAG) side panel ------------------------- */
+
+/* Body fills the chat column; the width cap (on the BODY, so every current or
+   future child shares it) keeps the conversation readable on wide screens —
+   leftover space stays blank between the chat column and the right edge/dock. */
+.chat-body {
+	position: relative;
+	display: flex;
+	flex: 1; /* .chat is a COLUMN flex box — this grows the body VERTICALLY */
+	min-height: 0;
+	min-width: 0;
+	/* FIXED column width — .chat's cross axis. The body never widens with its
+	   content; everything inside (text, code, tables, images) wraps or clamps
+	   to this cap. (Do NOT set flex-basis here — in a column container the
+	   flex shorthand drives HEIGHT; `0 0 auto` collapses the body to content
+	   height and kills the messages area's scroll.) */
+	width: 780px;
+	max-width: 780px;
+}
+.chat-main {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-width: 0;
+	min-height: 0;
+	position: relative; /* anchors the floating minimap rail */
+}
+.dag-panel {
+	width: 264px;
+	flex: none;
+	overflow-y: auto;
+	background: var(--panel);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	padding: 8px 6px 12px;
+}
+.dag-panel-head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--muted);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	padding: 2px 8px 8px;
+	border-bottom: 1px solid var(--border);
+	margin-bottom: 8px;
+}
+.settings-scope select {
+	background: var(--panel-2);
+	color: var(--text);
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 4px 8px;
+	font: inherit;
+	font-size: 12px;
+}
+.settings-hint {
+	margin: 8px 0 14px;
+	font-size: 12px;
+	max-width: 70ch;
+}
+.settings-body {
+	display: grid;
+	grid-template-columns: 320px 1fr;
+	gap: 18px;
+	flex: 1;
+	min-height: 0;
+}
+/* Settings → Agent: the asset list and the external-CLI section scroll as
+   ONE page. Inside it the asset panel gives up its own flex:1 + scroller —
+   two nested scrollers, one squeezed to 12px, was the bug. */
+.agents-tab {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding-right: 4px;
+	padding-bottom: 12px;
+}
+.agents-tab > .assets-panel {
+	flex: none;
+	overflow: visible;
+	padding: 0;
+}
+/* External CLI agents section (settings → Agent, lower half): the same card
+   as the Agent prompt table above it, a gap apart. */
+/* Settings → Agent: the prompt editor (agent-prompts.tsx). Lives inside the
+   one .agents-tab scroller, so the grid sizes to content: the list caps its
+   own height and scrolls, the textarea has a real floor instead of flex:1. */
+.agent-prompts .settings-hint,
+.agent-prompts .settings-error {
+	margin: 0;
+}
+.agent-prompts .admin-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.agent-prompts .admin-actions select {
+	min-height: 28px;
+	padding: 2px 6px;
+	background: var(--bg);
+	color: var(--text);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+}
+.ap-body {
+	flex: none;
+	align-items: start;
+}
+.ap-body .agent-list {
+	max-height: 640px;
+}
+.ap-group {
+	padding: 8px 12px 6px;
+	font-size: 11px;
+	background: var(--bg);
+	border-bottom: 1px solid var(--border);
+	cursor: default;
+}
+.ap-create {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+.ap-create input {
+	flex: 1;
+	max-width: 32em;
+}
+.ap-editor {
+	min-width: 0;
+}
+.ap-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+.ap-title {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+}
+.ap-title .agent-path {
+	min-width: 0;
+	direction: ltr;
+}
+.ap-mode {
+	display: inline-flex;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	overflow: hidden;
+}
+.ap-mode button {
+	background: transparent;
+	color: var(--muted);
+	border: 0;
+	border-radius: 0;
+	padding: 4px 12px;
+	font-size: 12px;
+}
+.ap-mode button.on {
+	background: var(--panel-2);
+	color: var(--text);
+	box-shadow: inset 0 -2px 0 var(--accent);
+}
+.ap-fields {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px 12px;
+}
+.ap-fields label {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 11px;
+	color: var(--muted);
+}
+.ap-fields input,
+.ap-fields select {
+	font: inherit;
+	font-size: 12.5px;
+	color: var(--text);
+	background: var(--bg);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	padding: 7px 10px;
+}
+.ap-wide {
+	grid-column: 1 / -1;
+}
+.ap-key {
+	font-family: var(--mono);
+	margin-left: 6px;
+}
+.ap-vars {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+button.ap-var {
+	font-family: var(--mono);
+	font-size: 11.5px;
+	min-height: 24px;
+	padding: 2px 8px;
+	background: transparent;
+	color: var(--accent);
+	border: 1px dashed var(--border);
+}
+button.ap-var:hover {
+	border-color: var(--accent);
+}
+.ap-count {
+	margin-left: auto;
+}
+.agent-textarea.ap-text {
+	flex: none;
+	min-height: 440px;
+	resize: vertical;
+}
+.ap-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+.ap-spacer {
+	flex: 1;
+}
+button.ap-danger:hover:not(:disabled) {
+	color: var(--danger);
+	border-color: var(--danger);
+}
+.ap-diff pre {
+	background: var(--bg);
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 8px 0;
+	font-family: var(--mono);
+	font-size: 12px;
+	line-height: 1.55;
+	max-height: 360px;
+	overflow: auto;
+	margin: 6px 0 0;
+}
+.ap-diff pre span {
+	display: block;
+	padding: 0 12px;
+	white-space: pre;
+}
+.ap-diff .add {
+	background: rgba(46, 160, 67, 0.15);
+}
+.ap-diff .del {
+	background: rgba(248, 81, 73, 0.15);
+}
+.ap-diff .ctx {
+	color: var(--muted);
+}
+.ap-diff .fold {
+	color: var(--muted);
+	font-style: italic;
+	background: var(--panel-2);
+}
+.ap-versions {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	border-top: 1px solid var(--border);
+	padding-top: 10px;
+}
+@media (max-width: 900px) {
+	.ap-fields {
+		grid-template-columns: 1fr;
+	}
+}
+/* No hover on a phone, so the ellipsised path's title is unreachable — drop
+   it rather than show a fragment. */
+@media (max-width: 720px) {
+	.ap-title .agent-path {
+		display: none;
+	}
+	/* The phone rule splits .settings-body into percentage rows of a FIXED
+	   height; these grids size to content inside the tab scroller, where a
+	   percentage row resolved to nothing and the editor overlapped the list. */
+	.settings-body.ap-body,
+	.cli-agents .settings-body {
+		grid-template-rows: auto auto;
+	}
+	.ap-body .agent-list {
+		max-height: 45vh;
+	}
+	.agent-textarea.ap-text {
+		min-height: 320px;
+	}
+}
+.cli-agents {
+	margin-top: 0;
+}
+.cli-agents .settings-hint,
+.cli-agents .settings-error {
+	margin: 0;
+}
+/* Inside the scrolling tab the list/form grid sizes to its content instead of
+   splitting a fixed height. */
+.cli-agents .settings-body {
+	flex: none;
+	align-items: start;
+}
+.cli-agent-form {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: var(--panel);
+	padding: 12px 14px;
+	overflow-y: auto;
+}
+.cli-agent-form label {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 12px;
+	color: var(--muted);
+}
+.cli-agent-form input,
+.cli-agent-form select,
+.cli-agent-form textarea {
+	font: inherit;
+	font-size: 12px;
+	padding: 6px 8px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: var(--bg);
+	color: var(--text);
+}
+.cli-agent-form textarea {
+	font-family: var(--mono, monospace);
+	white-space: pre;
+}
+.agent-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	overflow-y: auto;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: var(--panel);
+}
+.agent-item {
+	padding: 10px 12px;
+	border-bottom: 1px solid var(--border);
+	cursor: pointer;
+}
+.agent-item:last-child {
+	border-bottom: 0;
+}
+.agent-item:hover {
+	background: var(--panel-2);
+}
+.agent-item.active {
+	background: var(--panel-2);
+	box-shadow: inset 2px 0 0 var(--accent);
+}
+.agent-item-head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+.agent-name {
+	font-weight: 600;
+	font-size: 13px;
+}
+.agent-desc,
+.agent-source {
+	font-size: 11px;
+	margin-top: 3px;
+}
+/* The description is the one thing that tells two agents apart in the list, and
+   a single ellipsised line cut every one of them mid-sentence. Two lines fit all
+   six shipped descriptions; the clamp still bounds a runaway one. */
+.agent-desc {
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	line-height: 1.4;
+}
+.agent-source {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.badge {
+	font-size: 10px;
+	padding: 1px 6px;
+	border-radius: 999px;
+	border: 1px solid var(--border);
+	color: var(--muted);
+}
+.badge-override {
+	border-color: var(--accent);
+	color: var(--accent);
+}
+/* A problem state (e.g. a CLI agent whose command is not on PATH) — never the
+   accent, which reads as a positive tag. */
+.badge-warn {
+	border-color: var(--danger);
+	color: var(--danger);
+}
+.agent-editor {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	gap: 8px;
+}
+.agent-editor-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+.agent-path {
+	font-family: var(--mono);
+	font-size: 11px;
+	color: var(--muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	direction: rtl;
+	text-align: left;
+}
+.agent-actions {
+	display: flex;
+	gap: 8px;
+	flex-shrink: 0;
+}
+button.ghost {
+	background: transparent;
+	color: var(--muted);
+	border: 1px solid var(--border);
+}
+button.ghost:hover:not(:disabled) {
+	color: var(--text);
+	border-color: var(--accent);
+}
+.agent-textarea {
+	flex: 1;
+	min-height: 0;
+	resize: none;
+	font-family: var(--mono);
+	font-size: 12.5px;
+	line-height: 1.55;
+	tab-size: 4;
+}
+.plan {
+	flex: 0 0 auto;
+	margin: 0 auto 6px;
+	width: min(760px, 100%);
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	background: var(--panel-2);
+	overflow: hidden;
+}
+.plan-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	padding: 7px 12px;
+	background: none;
+	border: none;
+	color: var(--text);
+	font: inherit;
+	font-size: 12px;
+	text-align: left;
+	cursor: pointer;
+}
+.plan-badge {
+	font-size: 11px;
+	padding: 1px 6px;
+	border-radius: 999px;
+	border: 1px solid var(--border);
+	color: var(--muted);
+}
+.plan-badge.error {
+	color: var(--danger, #e5534b);
+	border-color: currentColor;
+}
+.plan-progress {
+	font-variant-numeric: tabular-nums;
+	color: var(--muted);
+}
+.plan-current {
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.plan-toggle {
+	color: var(--muted);
+	font-size: 11px;
+}
+.plan-list {
+	list-style: none;
+	margin: 0;
+	padding: 0 12px 8px;
+	max-height: 240px;
+	overflow-y: auto;
+}
+.plan-item {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	padding: 3px 0;
+	font-size: 12px;
+	line-height: 1.5;
+}
+.plan-item.done .plan-task {
+	color: var(--muted);
+	text-decoration: line-through;
+}
+.plan-item.failed .plan-mark {
+	color: var(--danger, #e5534b);
+}
+.plan-mark {
+	width: 1em;
+	flex: 0 0 auto;
+	color: var(--muted);
+}
+.plan-item.running .plan-mark {
+	color: var(--text);
+}
+.plan-task {
+	flex: 1;
+	min-width: 0;
+}
+.plan-meta {
+	flex: 0 0 auto;
+	font-size: 11px;
+	color: var(--muted);
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	padding: 0 5px;
+}
+.plan-note {
+	flex: 0 0 auto;
+	font-size: 11px;
+}
+.keys-body {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+}
+.keys-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+}
+.keys-table td {
+	padding: 7px 8px;
+	border-bottom: 1px solid var(--border);
+	vertical-align: middle;
+}
+.keys-table tr.conflict .key-cap {
+	border-color: var(--danger, #e5534b);
+}
+.keys-action {
+	width: 55%;
+}
+.keys-binding {
+	white-space: nowrap;
+}
+.keys-reset {
+	text-align: right;
+	white-space: nowrap;
+}
+.key-cap {
+	font: inherit;
+	font-size: 12px;
+	font-family: var(--mono, monospace);
+	background: var(--panel-2);
+	color: var(--text);
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 3px 10px;
+	min-width: 92px;
+	cursor: pointer;
+}
+.key-cap.capturing {
+	border-color: var(--accent, currentColor);
+	color: var(--muted);
+}
+.keys-warn {
+	margin-left: 8px;
+	font-size: 11px;
+	color: var(--danger, #e5534b);
+}
+.tool-progress {
+	font-size: 12px;
+	color: var(--muted);
+	font-family: var(--mono, monospace);
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+.settings-error {
+	color: var(--danger);
+	font-size: 12px;
+}
+.settings-notice {
+	font-size: 12px;
+}
+
+@media (max-width: 720px) {
+	.settings-body {
+		grid-template-columns: 1fr;
+		grid-template-rows: minmax(120px, 30%) 1fr;
+	}
+	/* A grid item's min-width defaults to auto (= its content), so on a phone the
+	   list widened to its longest description and pushed off the right edge.
+	   Pinning both tracks to the column is what lets the text wrap instead. */
+	.agent-list,
+	.agent-editor {
+		min-width: 0;
+	}
+	.agent-item {
+		min-width: 0;
+	}
+}
+.dag-count {
+	background: var(--panel-2);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	padding: 0 6px;
+	font-size: 11px;
+	line-height: 16px;
+}
+.dag-empty {
+	padding: 4px 8px;
+	line-height: 1.5;
+}
+.dag-tree {
+	margin-bottom: 10px;
+}
+
+/* Message minimap (Codex-style): one 1px dash per USER message, floating at
+ * the list's left-middle, LEFT-ALIGNED — magnification grows the dash to the
+ * RIGHT (origin left), like a Dock pinned to the left edge. Each dash lives
+ * in a tall transparent HIT ZONE (.mm-hit) with the visible 1px bar centered
+ * inside: the trigger area spans the full row pitch, and zones tile
+ * edge-to-edge (gap 0) so sliding in from an adjacent node never crosses a
+ * dead gap. Each zone carries a --s scale var — a gaussian of the cursor's
+ * pixel distance to the zone's vertical center, computed per mousemove in
+ * chat.tsx — driving the bar's width (Dock magnification) and brightness.
+ * --pitch shrinks zones on sessions too long for the column height. */
+.minimap {
+	position: absolute;
+	/* Fits exactly inside .messages' 20px left gutter: 2px offset + 17.6px
+	   peak dash (8px × 2.2) = 19.6px < 20 — magnification never leaves the
+	   gutter, never touches message bodies. */
+	left: 2px;
+	/* Y anchor = the MESSAGES box (set by JS: --mm-top/--mm-h from the list's
+	   offsetTop/clientHeight within chat-main) — NOT chat-main, whose span
+	   includes the composer band. Dashes center within that band. Fallback
+	   values only paint for the frame before the effect measures. */
+	top: var(--mm-top, 8px);
+	height: var(--mm-h, auto);
+	justify-content: center;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0; /* zones tile edge-to-edge — no dead space between nodes */
+	padding: 8px 0;
+	z-index: 6;
+}
+.mm-hit {
+	flex: none;
+	height: var(--pitch, 7px);
+	display: flex;
+	align-items: center; /* the 1px bar centers vertically; growth is horizontal */
+	cursor: pointer;
+}
+.mm-dash {
+	width: calc(8px * var(--s, 1));
+	height: 1px;
+	border-radius: 1px;
+	background: var(--muted);
+	opacity: calc(0.5 + (var(--s, 1) - 1) * 0.42); /* brightens along the curve; 1 at the 2.2× peak */
+	transition: width 0.08s ease-out, opacity 0.08s ease-out, background 0.08s ease-out;
+}
+.mm-hit:hover .mm-dash {
+	background: var(--accent);
+}
+/* Prompt tooltip: floats to the RIGHT of the rail at the hovered dash's
+ * vertical position. X is FIXED at the rail's fully-magnified right edge
+ * (base 8px × peak 2.2 + 8px gap — matches AMP in chat.tsx), so the tip
+ * never shifts horizontally as dashes swell; only Y follows the hovered
+ * dash (--y, set inline by JS: the dash's offset within the rail). */
+.mm-tip {
+	position: absolute;
+	left: calc(8px * 2.2 + 8px);
+	top: var(--y, 50%);
+	/* Y follows the hovered dash via --y; a short snappy ease makes it slide
+	 * between dashes instead of teleporting. X is fixed (see above). */
+	transition: top 0.12s cubic-bezier(0.2, 0.9, 0.3, 1);
+	transform: translateY(-50%);
+	max-width: 320px;
+	padding: 5px 9px;
+	background: var(--panel-2);
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+	font-size: 12px;
+	color: var(--text);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	pointer-events: none;
+	z-index: 7;
+}
+
+/* The column deck: the MAIN chat-main plus one sibling chat-main per drilled
+ * agent level, side by side inside a clipped strip. Navigation slides the
+ * STRIP via transform (set inline by chat.tsx from the drill depth) — a
+ * compositor-only animation: no layout/paint per frame, no JS tween, and
+ * percent-based so a resize never invalidates it. Every column is exactly
+ * the deck's width, so a sub column's head sits at its OWN column's true top
+ * edge. Outgoing columns stay mounted through the slide (chat.tsx keeps
+ * mountedPath one step behind drillPath) and are pruned after it settles. */
+.chat-deck {
+	flex: 1;
+	min-width: 0;
+	min-height: 0;
+	overflow: hidden;
+}
+.deck-strip {
+	display: flex;
+	height: 100%;
+	transition: transform 170ms cubic-bezier(0.22, 0.61, 0.36, 1);
+	/* One element, promoted once — the slide then runs entirely on the
+	 * compositor thread even while the main thread is busy rendering
+	 * streaming message deltas. */
+	will-change: transform;
+}
+.deck-strip > .chat-main {
+	flex: 0 0 100%;
+	min-width: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+	.deck-strip {
+		transition: none;
+	}
+}
+.dag-node {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 3px 6px;
+	border-radius: 6px;
+	font-size: 12px;
+	color: var(--muted);
+	cursor: default;
+	overflow: hidden;
+}
+.dag-node.live {
+	color: var(--text);
+	cursor: pointer;
+}
+.dag-node.live:hover {
+	background: var(--panel-2);
+}
+.dag-node.focused {
+	background: var(--panel-2);
+	box-shadow: inset 2px 0 0 var(--accent);
+}
+.dag-ic {
+	flex: none;
+	width: 14px;
+	text-align: center;
+	font-size: 11px;
+}
+.dag-ic.completed {
+	color: var(--ok);
+}
+.dag-ic.in_progress {
+	color: var(--accent);
+}
+.dag-ic.cancelled {
+	color: var(--muted);
+	opacity: 0.7;
+}
+.dag-desc {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.dag-mode {
+	flex: none;
+	font-size: 10px;
+	color: var(--muted);
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	padding: 0 3px;
+	line-height: 14px;
+}
+
+/* ------------------------- drill-in sub-agent view ------------------------ */
+
+.sub-view {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+	min-width: 0;
+}
+/* The sub column's head: an ordinary block at the very top of its own
+   chat-main column (the messages area below scrolls on its OWN), so nothing
+   can ever pass above it. Kept deliberately slim — a control strip, not a
+   banner. */
+.sub-head {
+	flex: none;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 2px 6px;
+	background: var(--bg);
+	border-bottom: 1px solid var(--border);
+}
+.sub-back {
+	flex: none;
+	width: 22px;
+	height: 22px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: none;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	color: var(--muted);
+	font-size: 9px;
+	line-height: 1;
+	padding: 0;
+	cursor: pointer;
+}
+.sub-name {
+	font-weight: 600;
+	color: var(--accent);
+	white-space: nowrap;
+}
+.sub-back:hover {
+	color: var(--text);
+	border-color: var(--accent);
+}
+.sub-label {
+	flex: 1;
+	min-width: 0;
+	font-size: 12.5px;
+	font-weight: 500;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+/* Sub-agent cumulative tokens (drill-in head). */
+.sub-usage {
+	flex: none;
+	font-size: 10.5px;
+	color: var(--muted);
+	white-space: nowrap;
+}
+
+/* Header plan toggle active state. */
+.cp-btn.on {
+	color: var(--accent);
+}
+
+
+/* Floating activity HUD (LivePanel): .chat's top-right corner — in the freed
+ *  space BESIDE the width-capped chat column, not over it. Three stages —
+ *  "open" (title bar + tree), "title" (head-only), "dot" (a corner dot that
+ *  breathes while anything is live). One click cycles. */
+.live-panel {
+	position: absolute;
+	top: 6px;
+	right: 0;
+	z-index: 5;
+	width: 300px;
+	max-height: 60%;
+	display: flex;
+	flex-direction: column;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	background: var(--panel);
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+	overflow: hidden;
+}
+/* Title bar: [– minimize] [⚡ counts] [▾/▸ tree toggle] — three separate
+ *  levers; the min button (left) collapses to the dot, the caret (right)
+ *  only folds the tree. */
+.live-panel-head {
+	flex: none;
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	padding: 3px 4px 3px 2px;
+}
+.live-panel-min,
+.live-panel-title,
+.live-panel-caret {
+	border: none;
+	background: none;
+	border-radius: 4px;
+	padding: 4px 6px;
+	font-size: 12px;
+	line-height: 1;
+	color: var(--muted);
+	cursor: pointer;
+	white-space: nowrap;
+}
+.live-panel-title {
+	text-align: left;
+}
+.live-panel-min:hover,
+.live-panel-title:hover,
+.live-panel-caret:hover {
+	filter: none;
+	color: var(--text);
+	background: var(--panel-2);
+}
+.live-panel-head.hot .live-panel-title {
+	color: var(--accent);
+}
+.live-panel-caret {
+	margin-left: auto;
+	font-size: 10px;
+}
+.live-panel-body {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	border-top: 1px solid var(--border);
+	padding: 6px 4px 10px;
+}
+.live-panel-body .live-tree {
+	padding: 0 4px;
+}
+/* "title": shrink to the head bar's own content width. */
+.live-panel.head-only {
+	width: auto;
+	max-width: 300px;
+	max-height: none;
+}
+/* "dot": fully collapsed — a small dot docked to the same corner; breathes
+ *  (scale + opacity) while any agent or tool is live. */
+.live-panel.dot {
+	width: 12px;
+	height: 12px;
+	max-height: none;
+	padding: 0;
+	border-radius: 50%;
+	background: var(--muted);
+	box-shadow: none;
+	cursor: pointer;
+}
+.live-panel.dot.hot {
+	border-color: var(--accent-2);
+	background: var(--accent-2);
+	box-shadow: 0 0 8px color-mix(in srgb, var(--accent-2) 60%, transparent);
+	animation: live-breathe 1.6s ease-in-out infinite;
+}
+@keyframes live-breathe {
+	0%,
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
+	50% {
+		transform: scale(1.45);
+		opacity: 0.55;
+	}
+}
+.live-sec-label {
+	font-size: 11px;
+	color: var(--muted);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	margin: 2px 4px 4px;
+}
+.live-agent {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	padding: 4px 6px;
+	background: none;
+	border: none;
+	border-radius: 6px;
+	color: var(--text);
+	font-size: 12px;
+	text-align: left;
+	cursor: default;
+}
+.live-agent.drill {
+	cursor: pointer;
+}
+.live-agent.drill:hover {
+	background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.live-agent-kind {
+	flex: none;
+	font-size: 10px;
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	padding: 0 4px;
+	line-height: 15px;
+	color: var(--muted);
+}
+.live-agent-kind.main {
+	color: var(--accent);
+	border-color: var(--accent);
+}
+.live-agent-label {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+/* Per-agent token ledger (the divide-and-conquer cost visibility). */
+.live-agent-usage {
+	flex: none;
+	font-size: 10px;
+	color: var(--muted);
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	padding: 0 4px;
+	line-height: 14px;
+	white-space: nowrap;
+}
+.live-tool {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 6px;
+	font-size: 12px;
+	min-width: 0;
+}
+/* A workflow run folded into its parent agent's row (violet, same family as
+ * the chat log's .wf-call card): identity chip, not a drillable node — its
+ * sub-agents render as ordinary children right below. */
+.live-wf {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 3px 6px;
+	margin: 1px 0;
+	border-radius: 6px;
+	background: color-mix(in srgb, #8957e5 10%, transparent);
+	font-size: 11.5px;
+	min-width: 0;
+}
+.live-wf-ic {
+	flex: none;
+	line-height: 1;
+}
+.live-wf-name {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-family: var(--mono);
+	color: #a371f7;
+}
+.live-wf-count {
+	flex: none;
+	font-size: 10px;
+	color: var(--muted);
+	white-space: nowrap;
+}
+/* A plan (DAG tree) nested under its owning agent in the task tree. */
+.live-plan {
+	margin: 4px 0 4px 10px;
+	border-left: 2px solid var(--border);
+	padding-left: 2px;
+}
+.live-plan-goal {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--muted);
+	padding: 2px 6px;
+}
+.live-plan-name {
+	flex: 1;
+	min-width: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.live-plan .dag-node {
+	font-size: 12px;
+	padding: 3px 6px;
+	border-radius: 6px;
+}
+.live-tool .tr-name {
+	flex: none;
+}
+.live-tool-arg {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--muted);
+}
+.live-tool-time {
+	flex: none;
+	color: var(--accent-2);
+	font-family: var(--mono);
+	font-size: 11px;
+}
+/* Tree nodes inside the live-activity popover (Chrome-process-monitor style). */
+.live-node {
+	display: flex;
+	flex-direction: column;
+}
+.live-tool-pid {
+	flex: none;
+	font-family: var(--mono);
+	font-size: 10px;
+	color: var(--accent-2);
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	padding: 0 4px;
+	line-height: 15px;
+}
+
+/* ---------------- HTML preview cards (```html fences) + demo viewer -------- */
+.html-card {
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	margin: 8px 0;
+	overflow: hidden;
+	background: var(--panel-2);
+}
+.html-card-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 4px 10px;
+	background: var(--panel-2);
+	border-bottom: 1px solid var(--border);
+}
+.html-card-title {
+	font-size: 11px;
+	color: var(--muted);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+.html-card-src {
+	background: none;
+	border: none;
+	color: var(--muted);
+	font-size: 11px;
+	cursor: pointer;
+	padding: 2px 6px;
+	border-radius: 4px;
+}
+.html-card-src:hover {
+	color: var(--text);
+	background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.html-card-frame {
+	display: block;
+	width: 100%;
+	border: none;
+	background: transparent;
+	color-scheme: light dark;
+}
+.html-card-source {
+	display: none;
+	margin: 0;
+	padding: 10px 12px;
+	max-height: 320px;
+	overflow: auto;
+	font: 12px/1.5 var(--mono);
+	background: var(--panel-2);
+	color: var(--text);
+	white-space: pre-wrap;
+}
+.html-card.show-src .html-card-view {
+	display: none;
+}
+.html-card.show-src .html-card-source {
+	display: block;
+}
+/* The right-side draw_demo viewer iframe fills its panel (page scrolls inside). */
+.demo-frame {
+	flex: 1;
+	width: 100%;
+	border: none;
+	background: #fff; /* demos are full pages — keep a predictable canvas */
+	border-radius: 0 0 var(--radius) var(--radius);
+}
+
+/* ===================== memory (#/memory page + sidebar entry + toast) ===================== */
+
+/* Sidebar entry pinned below the projects tree. */
+/* App-level rows (记忆 / 设置). Same row as a session — same height, padding,
+   hover wash and selected state — so the rail is one list top to bottom. */
+.rail-nav {
+	flex: none;
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	padding: var(--rail-gutter) 0;
+}
+.rail-row {
+	color: var(--muted);
+}
+/* Top-level rows carry a 16px icon in a 16px slot; the caret on a project row
+   sits in the same slot, so labels line up down the rail. */
+.rail-row > .icon,
+.caret {
+	width: 16px;
+	height: 16px;
+}
+.rail-row:hover {
+	background: var(--panel-2);
+	color: var(--text);
+}
+.rail-row.active {
+	background: var(--panel-2);
+	color: var(--text);
+}
+.memory-badge {
+	margin-left: auto;
+	min-width: 18px;
+	height: 18px;
+	padding: 0 5px;
+	border-radius: 9px;
+	background: var(--accent);
+	color: var(--bg);
+	font-size: 11px;
+	font-weight: 600;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+/* #/memory page fills the pane right of the sidebar. */
+.memory-page {
+	flex: 1;
+	min-width: 0;
+	overflow-y: auto;
+	padding: 28px 24px 60px;
+}
+.memory-inner {
+	max-width: 760px;
+	margin: 0 auto;
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+}
+.memory-title {
+	margin: 0;
+	font-size: 20px;
+}
+.memory-section {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+.memory-section h2 {
+	margin: 8px 0 2px;
+	font-size: 14px;
+	color: var(--muted);
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.memory-count {
+	background: var(--accent);
+	color: var(--bg);
+	border-radius: 9px;
+	padding: 1px 7px;
+	font-size: 11px;
+	font-weight: 600;
+}
+.memory-card {
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: var(--panel);
+	padding: 12px 14px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+.memory-card.pending {
+	border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+.memory-card-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+.chip {
+	font-size: 11px;
+	padding: 2px 8px;
+	border-radius: 999px;
+	border: 1px solid var(--border);
+	color: var(--muted);
+}
+.chip.cat {
+	color: var(--text);
+}
+.memory-edit {
+	width: 100%;
+	resize: vertical;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	background: var(--bg);
+	color: var(--text);
+	padding: 8px 10px;
+	font: 13px/1.5 inherit;
+}
+.memory-actions {
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+}
+.memory-category {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.memory-category-title {
+	font-size: 12px;
+	color: var(--muted);
+}
+.memory-body {
+	margin: 0;
+	padding: 8px 10px;
+	border-radius: 8px;
+	background: var(--panel-2);
+	font: 12px/1.6 var(--mono);
+	white-space: pre-wrap;
+}
+.tiny {
+	font-size: 11px;
+}
+
+/* App-level toast: pending memory from last night's distill. */
+.memory-toast {
+	position: fixed;
+	right: 20px;
+	bottom: 20px;
+	z-index: 60;
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 12px 16px;
+	border-radius: 12px;
+	border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+	background: var(--panel);
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+	max-width: 380px;
+}
+.memory-toast-body {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 13px;
+}
+.memory-toast-icon {
+	font-size: 18px;
+}
+.memory-toast-actions {
+	display: flex;
+	gap: 6px;
+	flex: none;
+}
+
+/* ---- topbar notification bell ---- */
+/* .icon-btn defaults to opacity:0 (tree rows reveal on hover) — the topbar bell
+   must be always visible, with its own affordance for the enabled state. */
+/* The notification toggle is the topbar's only right-hand control (the settings
+   gear moved into the sidebar next to 记忆/管理, where the other app-level pages
+   already live). `margin-left: auto` is what pins it to the right edge — without
+   it the bell sat beside the brand. 32px square so it is a real tap target. */
+.icon-btn.bell {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	border: 0;
+	border-radius: 8px;
+	margin-left: auto;
+	/* Off = dim, on = lit. The state is the brightness, nothing else. */
+	color: var(--muted);
+	opacity: 0.55 !important;
+}
+.icon-btn.bell .icon {
+	width: 18px;
+	height: 18px;
+}
+.icon-btn.bell:hover {
+	opacity: 0.85 !important;
+	color: var(--text);
+	background: var(--panel-2);
+}
+.icon-btn.bell.on {
+	opacity: 1 !important;
+	color: var(--text);
+}
+
+/* --------------------------------- admin ---------------------------------- */
+
+/* The assets inventory, as a settings tab: it scrolls inside the settings frame
+   (the frame itself is overflow:hidden so the tab strip stays put). */
+.assets-panel {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding-right: 4px;
+	padding-bottom: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+.admin-page {
+	overflow-y: auto;
+	width: 100%;
+	height: 100%;
+}
+.admin-inner {
+	max-width: 980px;
+	margin: 0 auto;
+	padding: 20px 24px 48px;
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+}
+.admin-title {
+	font-size: 20px;
+	margin: 0;
+}
+.admin-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+.admin-toolbar select {
+	background: var(--panel-2);
+	color: var(--text);
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 4px 8px;
+}
+.admin-section {
+	background: var(--panel);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	padding: 14px 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+.admin-section-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+.admin-section-head h2 {
+	font-size: 15px;
+	margin: 0;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.admin-dirty {
+	font-size: 11px;
+	color: var(--accent);
+	border: 1px solid var(--accent);
+	border-radius: 999px;
+	padding: 1px 8px;
+}
+.admin-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+}
+.admin-table th,
+.admin-table td {
+	text-align: left;
+	padding: 6px 8px;
+	border-bottom: 1px solid var(--border);
+	vertical-align: middle;
+}
+.admin-table th {
+	color: var(--muted);
+	font-weight: 500;
+	font-size: 12px;
+}
+.admin-table tr.off td {
+	opacity: 0.45;
+}
+.admin-row-actions {
+	text-align: right;
+	white-space: nowrap;
+}
+.admin-row-actions button {
+	margin-left: 6px;
+}
+.admin-actions {
+	display: flex;
+	gap: 8px;
+}
+.admin-create {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+.admin-create input,
+.admin-create textarea,
+.admin-editor {
+	background: var(--bg);
+	color: var(--text);
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 8px 10px;
+	font-size: 13px;
+	width: 100%;
+	box-sizing: border-box;
+}
+.admin-create textarea,
+.admin-editor {
+	font-family: var(--mono);
+	resize: vertical;
+}
+.admin-editor {
+	min-height: 260px;
+	line-height: 1.5;
+}
+.admin-editor.json {
+	min-height: 160px;
+}
+.admin-versions {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.admin-versions h3 {
+	font-size: 13px;
+	margin: 4px 0 0;
+	color: var(--muted);
+	font-weight: 500;
+}
+.admin-version-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 12px;
+}
+.admin-version-row code {
+	font-family: var(--mono);
+	color: var(--accent);
+}
+.admin-diff pre {
+	background: var(--bg);
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 10px 12px;
+	font-family: var(--mono);
+	font-size: 12px;
+	line-height: 1.55;
+	overflow-x: auto;
+	max-height: 320px;
+	overflow-y: auto;
+	margin: 6px 0 0;
+}
+@media (max-width: 720px) {
+	.hide-narrow {
+		display: none;
+	}
+}
+
+/* ---------------------------------------------------------------- memory
+   The memory browser, mounted both at #/memory and in settings → Memory.
+   Deliberately close to the file on disk: the id and timestamp shown here are
+   the same ones the model reads in its prompt, so the list doubles as the audit
+   surface for a writer that has no confirmation step. Its own `mem-` prefix —
+   `.memory-*` already belongs to the sidebar badge and the page shell. */
+.mem-browser {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	min-height: 0;
+	overflow-y: auto;
+}
+.mem-summary {
+	margin: 0;
+}
+.mem-group {
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: var(--panel);
+	padding: 8px 10px 4px;
+}
+.mem-group-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 4px;
+}
+.mem-cat {
+	padding: 1px 7px;
+	border-radius: 10px;
+	background: var(--panel-2);
+	border: 1px solid var(--border);
+	font-size: 11px;
+	font-weight: 600;
+}
+.mem-count {
+	margin-left: auto;
+	font-size: 11px;
+	color: var(--muted);
+}
+.mem-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+.mem-row {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	padding: 6px 0;
+	border-top: 1px solid var(--border);
+	font-size: 13px;
+}
+.mem-row:first-child {
+	border-top: none;
+}
+/* The id is the handle for `forget` and for grepping runs.jsonl — monospace so
+   it reads as an identifier rather than prose. */
+.mem-id {
+	flex: none;
+	font-family: var(--mono);
+	font-size: 11px;
+	color: var(--muted);
+	background: var(--panel-2);
+	border-radius: 4px;
+	padding: 1px 5px;
+}
+.mem-content {
+	flex: 1;
+	min-width: 0;
+	word-break: break-word;
+}
+.mem-at {
+	flex: none;
+	font-size: 11px;
+	white-space: nowrap;
+}
+.mem-row button {
+	flex: none;
+}
+.settings-panel-body {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	flex: 1;
+	min-height: 0;
+	overflow: hidden;
+}
+.settings-panel-body > p {
+	margin: 0;
+}
+
+/* Admin inventory toggles: a native checkbox is 13px, which is a guess on touch.
+   Scale the box itself rather than padding the cell, so the visible control is
+   what you tap. */
+.assets-panel input[type="checkbox"],
+.settings-body input[type="checkbox"],
+.admin-page input[type="checkbox"],
+.inventory input[type="checkbox"] {
+	/* 24px is the WCAG target-size floor — the 5px margin padded the LOOK,
+	   not the hit area (ui-audit flagged every checkbox as an 18×18 target). */
+	width: 24px;
+	height: 24px;
+	margin: 2px;
+	cursor: pointer;
+	accent-color: var(--accent-2);
+}
+
+/* ---------------------------------------------------------------- icons
+   One family app-wide (server/views/icons.tsx). Status marks take the colour of
+   their state; the spinner turns; inline marks in a text run sit on the
+   baseline at the text's own size. */
+.icon-spin {
+	animation: icon-spin 0.9s linear infinite;
+}
+@keyframes icon-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+.sc-status .icon,
+.tr-status .icon,
+.wf-step-ic .icon,
+.dag-ic .icon,
+.plan-mark .icon {
+	width: 14px;
+	height: 14px;
+}
+.sc-status.ok .icon,
+.tr-status.ok .icon,
+.wf-step-ic.ok .icon,
+.dag-ic.completed .icon {
+	color: var(--ok);
+}
+.sc-status.err .icon,
+.tr-status.err .icon,
+.wf-step-ic.error .icon {
+	color: var(--danger);
+}
+.sc-status.running .icon,
+.tr-status.running .icon,
+.wf-step-ic.running .icon,
+.wf-step-ic.run .icon,
+.dag-ic.in_progress .icon {
+	color: var(--accent);
+}
+/* An icon inline with text (button labels, card titles) aligns to the text. */
+button > .icon,
+.tool-name > .icon,
+.sub-name > .icon,
+.live-plan-name > .icon,
+.wf-kind > .icon,
+.live-wf-ic > .icon {
+	display: inline-block;
+	vertical-align: -3px;
+	margin-right: 4px;
+}
+.drawer-close .icon,
+.dock-close .icon,
+.menu-toggle .icon {
+	display: block;
+}
+
+/* ---------------------------------------------------------------- modal
+   The one dialog (new project). Centred card on a scrim; the card is a form so
+   Enter submits. Fields stack with a label above and a hint below. */
+.modal-backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 100;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(0, 0, 0, 0.55);
+	padding: 20px;
+}
+.modal {
+	width: min(440px, 100%);
+	background: var(--panel);
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	padding: 18px 20px 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+}
+.modal-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+.modal-head h2 {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+}
+.modal-close {
+	opacity: 0.7 !important;
+	margin-right: -6px;
+}
+.field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.field-label {
+	font-size: 12.5px;
+	color: var(--text);
+}
+.field-hint {
+	font-size: 11.5px;
+}
+.field input {
+	width: 100%;
+	font-size: 13px;
+	padding: 7px 10px;
+}
+
+/* New-session dialog: Agent运行时 picker — a custom button group, not a native
+   <select>, so each option can be styled/expanded consistently with the rest
+   of the dialog (a native select's popup can't be themed cross-browser). */
+.runtime-picker {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+.runtime-opt {
+	flex: 1 1 auto;
+	padding: 7px 10px;
+	font-size: 12.5px;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	background: var(--panel-2);
+	color: var(--text);
+	cursor: pointer;
+	white-space: nowrap;
+}
+.runtime-opt:hover {
+	border-color: var(--accent);
+}
+.runtime-opt.on {
+	border-color: var(--accent);
+	background: var(--accent);
+	color: #fff;
+}
+.modal-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 2px;
+}
+
+/* Settings → Tool: the editor and the read-only schema share the right column. */
+.tool-detail {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	min-height: 0;
+	gap: 8px;
+}
+.tool-detail .agent-editor {
+	flex: 1;
+}
+.tool-schema {
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: var(--panel);
+	padding: 6px 10px;
+	font-size: 12px;
+	flex: none;
+}
+.tool-schema > summary {
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--muted);
+}
+.tool-schema[open] {
+	max-height: 40%;
+	overflow: auto;
+}
+.tool-schema pre {
+	margin: 8px 0 0;
+	font-size: 11px;
+	line-height: 1.45;
+	white-space: pre;
+	overflow-x: auto;
+}
+
+/* CLI-backed (pty) session view — a real terminal, no chat chrome. Sizing is
+   flex:1 + min-height/min-width:0 all the way down (NOT height:100%, which a
+   nested flex-column chain won't reliably honor) so the terminal always fills
+   its tab, in both dimensions, as the tab/sidebar/window resizes. */
+.terminal-page {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+	min-width: 0;
+}
+.terminal-head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 14px;
+	border-bottom: 1px solid var(--border);
+	color: var(--muted);
+	font-size: 12px;
+	flex: none;
+}
+.terminal-label {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.terminal-body {
+	flex: 1;
+	min-height: 0;
+	min-width: 0;
+	padding: 8px 12px;
+	background: #0e1116;
+}
+/* xterm's own scrollback viewport (.xterm-viewport, overflow-y:auto from
+   xterm.css) needs a real pixel height to scroll — .xterm itself has to
+   fill the container in both axes for that math to work. */
+.terminal-body .xterm {
+	height: 100%;
+	width: 100%;
+}
+
+/* CLI-backed session badge in the tree's session row. */
+.cli-badge {
+	display: inline-flex;
+	color: var(--muted);
+	flex: none;
+}
+.cli-badge svg {
+	width: 13px;
+	height: 13px;
+}
+/* A brand mark (Claude / Codex) is busier than a line icon — a touch larger
+   so it stays legible beside the label. */
+.cli-badge .icon-brand {
+	width: 14px;
+	height: 14px;
+}
+
+/* New-session dialog: one KEY/VALUE row per env override. */
+.env-row {
+	display: flex;
+	gap: 6px;
+	margin-bottom: 6px;
+}
+.env-row input {
+	flex: 1;
+	min-width: 0;
+}
+button.ghost.small {
+	padding: 4px 8px;
+	font-size: 12px;
+}

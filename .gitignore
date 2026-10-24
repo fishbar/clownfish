@@ -1,0 +1,26 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+data/
+.env
+.env.*
+!.env.example
+# Provider endpoint + credentials (Claude Code-style settings). Never commit.
+settings.json
+settings.local.json
+**/settings.local.json
+.DS_Store
+*.log
+.bench/
+
+# Design master (2048px, ~970KB). Kept local; assets/logo-master.png (512px)
+# is the committed source that `node scripts/logo-assets.mjs` regenerates from.
+/logo.png
+.ui-audit/
+# Playwright MCP tool artifacts (console logs / page snapshots)
+.playwright-mcp/
+
+# bun --compile output (app/mac dev layout)
+.appbuild/
+*.bun-build

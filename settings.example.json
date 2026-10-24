@@ -1,0 +1,38 @@
+{
+  "//": "Copy to <dataDir>/settings.json (e.g. ~/.clownfish/settings.json) and fill in. This file is a template — the real settings.json holds secrets and is gitignored. Clownfish reads endpoint + token from here so they never live in code. Precedence: a real env var wins over values here (set-if-missing).",
+  "provider": "anthropic",
+  "model": "glm-5.2",
+  "sessionsDir": "~/.clownfish/sessions",
+  "//sessionsDir": "Directory holding one transcript JSONL per session (default ~/.clownfish/sessions). Each agent worker writes only its own file.",
+  "baseUrl": "https://open.bigmodel.cn/api/anthropic",
+  "authToken": "<your-token>",
+  "//env": "Optional: raw env vars applied verbatim (power users / non-anthropic providers).",
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://open.bigmodel.cn/api/anthropic",
+    "ANTHROPIC_AUTH_TOKEN": "<your-token>",
+
+    "CLOWNFISH_AGENT_SPAWN_MODE": "process",
+
+    "//auth": "Optional login, OFF unless CLOWNFISH_AUTH is set (the default: no password). Modes: `simple` (username+password; run `npm run login` — the first-run wizard — or any interactive boot to set them; the PBKDF2 verifier lands in <dataDir>/auth/simple.json), or OAuth2/OIDC: `google` | `github` | `oidc` (un-comment the keys below, dropping the leading //). A requested-but-incomplete config REFUSES TO BOOT instead of running open; set CLOWNFISH_AUTH to `off` to disable. Allowlist = emails OR domains; both empty denies everyone. The callback path is /auth/<provider>/callback. `make dev` forces it off locally regardless of this file.",
+    "//CLOWNFISH_AUTH": "google",
+    "//GOOGLE_CLIENT_ID": "<oauth-client-id>",
+    "//GOOGLE_CLIENT_SECRET": "<oauth-client-secret>",
+    "//CLOWNFISH_AUTH_REDIRECT": "https://your-host/auth/google/callback",
+    "//CLOWNFISH_AUTH_ALLOWED_EMAILS": "you@example.com,teammate@example.com",
+    "//CLOWNFISH_AUTH_ALLOWED_DOMAINS": "example.com",
+    "//oidc": "Any OpenID provider: CLOWNFISH_AUTH=oidc + OIDC_CLIENT_ID / OIDC_CLIENT_SECRET + CLOWNFISH_OIDC_ISSUER (https://idp.example.com) — or CLOWNFISH_OIDC_AUTH_URL / _TOKEN_URL / _USERINFO_URL instead of the issuer. GitHub: CLOWNFISH_AUTH=github + GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET.",
+
+    "//auth-simple": "Simple mode needs only the one key (credentials live in <dataDir>/auth/simple.json, written by the wizard):",
+    "//CLOWNFISH_AUTH_SIMPLE": "simple",
+
+    "//openai-codex": "A project set to provider \"openai-codex\" signs in with a ChatGPT Plus/Pro account instead of an api key — run `npm run login:openai` once (see CLAUDE.md's \"OpenAI login\" section). No key belongs here for it.",
+    "//OPENAI_HTTPS_PROXY": "http://127.0.0.1:7890",
+
+    "//cli-sessions": "Off by default. A CLI-backed session hands the whole session to an external CLI (Codex, Claude Code, or any command) under an embedded terminal — it spawns an arbitrary process reachable from the web UI, so it needs an explicit opt-in like CLOWNFISH_MCP_PROJECT. The CLI is assumed to already be configured (e.g. `codex login`/`claude login` done on this machine) — clownfish injects no model/provider config for it, only an optional env override (proxy vars etc.) chosen per session.",
+    "//CLOWNFISH_CLI_SESSIONS": "1",
+
+    "//cli-subagents": "Off by default. EXTERNAL CLI SUB-AGENTS: lets run_agent delegate to an external agent CLI (codex / claude-code / custom) configured in <dataDir>/cli-agents.json (settings → Agent → 外部 CLI agent). The CLI runs headless with its own model+login on the session's workspace; progress comes from tailing the CLI's own session JSONL, so the drill-in view works exactly like a built-in sub-agent. Model-initiated process spawning is a bigger blast radius than the operator-driven terminal sessions above, hence its own gate. CLOWNFISH_CLI_SUBAGENT_PERMISSIONS overrides claude's default --permission-mode (bypassPermissions) for headless runs.",
+    "//CLOWNFISH_CLI_SUBAGENTS": "1",
+    "//CLOWNFISH_CLI_SUBAGENT_PERMISSIONS": "bypassPermissions"
+  }
+}
