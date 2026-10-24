@@ -11,6 +11,7 @@
  * Every failure is swallowed — generating a title is purely a readability nicety
  * and must never disrupt the real conversation.
  */
+import { normalizeContext } from "@earendil-works/pi-ai";
 import type { ResolvedRuntime } from "./models";
 
 const MAX_TITLE_LEN = 80;
@@ -49,10 +50,10 @@ export async function generateSessionTitle(runtime: ResolvedRuntime, firstPrompt
 		const stream = await Promise.resolve(
 			runtime.streamFn(
 				runtime.model,
-				{
+				normalizeContext({
 					systemPrompt: TITLE_SYSTEM_PROMPT,
 					messages: [{ role: "user", content: firstPrompt.slice(0, 4000), timestamp: Date.now() }],
-				},
+				}),
 				{ apiKey, maxTokens: 32, timeoutMs: 20_000, signal: controller.signal },
 			),
 		);

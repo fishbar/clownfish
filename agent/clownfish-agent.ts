@@ -20,6 +20,7 @@ import {
 	type AgentOptions,
 	type ThinkingLevel,
 } from "@earendil-works/pi-agent-core";
+import { normalizeContext } from "@earendil-works/pi-ai";
 import type { Skill } from "./skills";
 import { createSkillTool } from "./skills";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -167,7 +168,7 @@ export class ClownfishAgent extends Agent {
 
 		// Budget guard: pi's loop has NO built-in exit condition beyond
 		// "no more tool calls" — a runaway agent streams turns forever. We hook
-		// shouldStopAfterTurn (called once per LLM turn) and count turns + output
+		// finishTurn (called once per LLM turn) and count turns + output
 		// tokens per run (reset on agent_start). Stopping is graceful: the loop
 		// emits agent_end normally, and we append a notice the model (and the
 		// user) will see, so a coordinating parent can react instead of hang.
@@ -186,23 +187,23 @@ export class ClownfishAgent extends Agent {
 			}
 		});
 		const userStop = opts.onEvent;
-		this.shouldStopAfterTurn = async (context) => {
+		this.finishTurn = async (turn) => {
 			if (budget.maxTurns !== undefined && turns >= budget.maxTurns) {
 				stopReason = `turn budget reached (${turns} turns)`;
 			} else if (budget.maxOutputTokens !== undefined && outputTokens >= budget.maxOutputTokens) {
 				stopReason = `output token budget reached (${outputTokens} tokens)`;
 			} else {
-				return false;
+				return undefined;
 			}
 			this.state.messages = [
-				...context.context.messages,
+				...turn.context.messages,
 				{
 					role: "user",
 					content: [{ type: "text", text: `[budget stop] ${stopReason} — the run was cut short to cap cost. Wrap up now with what you have.` }],
 				} as AgentMessage,
 			];
 			void userStop;
-			return true;
+			return { action: "end" };
 		};
 
 		if (opts.onEvent) {
@@ -235,10 +236,10 @@ export class ClownfishAgent extends Agent {
 		const stream = await Promise.resolve(
 			this.rt.streamFn(
 				this.rt.model,
-				{
+				normalizeContext({
 					systemPrompt: opts.systemPrompt,
 					messages: [...history, { role: "user", content: prompt, timestamp: Date.now() }],
-				},
+				}),
 				{ apiKey, maxTokens: opts.maxTokens, signal: opts.signal },
 			),
 		);
